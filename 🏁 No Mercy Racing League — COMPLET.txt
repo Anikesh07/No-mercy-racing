@@ -1,0 +1,110 @@
+🏁 No Mercy Racing League — COMPLETE SUMMARY
+
+📌 EVENT BASICS
+Duration: 7 Days
+Teams: x
+Prize : decide by admin
+
+Team Size: 4 racers + 1 reserve
+Mandatory: At least 1 female racer per team
+
+💰 ECONOMY SYSTEM
+Entry Fee: $25,000 per team → Prize Pool
+1v1 Challenge Fee: $10,000 per team
+Winner takes $20,000 pot
+
+
+📊 POINT SYSTEM
+Each team starts with: 100 Points
+
+🏆 Team Race
+Participation: +5 per racer
+Position Points:
+1st +10 → 8th+ +1
+Bottom 3 penalty:
+Last: -3
+Second last: -2
+Third last: -1
+
+🏎️ Duo Race
+Participation: +3
+1st: +7
+2nd: +4
+
+⚔️ Host 1v1
+Participation: +2
+Winner: +5
+
+🎲 1v1 Challenge
+Optional betting (points + cash)
+Winner takes all
+
+
+🔄 RACER SWAP
+Max 2 swaps per team
+Cost: 10 points per swap
+Points distributed to other teams
+🏎️ DAILY STRUCTURE
+
+Each day:
+
+Team Race
+Duo Race
+Host 1v1 (compulsory)
+Optional Challenge 1v1
+🔁 PARTICIPATION RULES
+
+Duo racers ❌ cannot play Host 1v1
+Team Race Top 5 podium finish / top racer of each team  ❌ no Duo / Host 1v1
+
+
+
+👉 Ensures all players are used
+
+⚠️ DOMINANCE RULE
+
+If all 4 racers of a team finish Top 5:
+
+Reserve + bottom 2 racers:
+MUST play Duo + Host 1v1
+Top racers:
+❌ no Duo / Host 1v1
+✔️ can play challenge
+⚔️ 1v1 CHALLENGE RULE (RANK BASED)
+Teams can only challenge:
+Team above
+OR team below
+
+
+
+👉 No skipping ranks
+
+🚫 Cannot Refuse
+If a team denies:
+Automatic loss
+Lose $10,000 + bet points
+
+
+🏆 FINAL RESULTS
+Highest points after 7 days wins
+⚖️ TIE-BREAKER
+Best driver from each tied team
+1v1 race
+Hardest track
+Winner decides ranking
+🎁 PRIZES
+Only Top 3 teams win
+
+Suggested:
+
+🥇 50%
+🥈 30%
+🥉 20%
+🧠 FINAL LOGIC (READ THIS OR SUFFER)
+Everyone races daily
+Winning too much = restrictions
+Losing = small penalty
+Swapping = costs points
+1v1 = risk + reward
+You can only fight neighbors
+No one can dodge	

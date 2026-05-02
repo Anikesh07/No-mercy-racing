@@ -1,0 +1,185 @@
+🏁 FINAL POINT SYSTEM (WITH CONTROLLED DEDUCTIONS)
+📊 1. STARTING SYSTEM
+All teams start with: 0 Points
+
+
+🏆 2. TEAM GRAND PRIX (MAIN RACE)
+Participation:
++4 per racer → +16 per team
+Position Points:
+1st: +10
+2nd: +8
+3rd: +6
+4th: +5
+5th: +4
+6th: +3
+7th: +2
+8th+: +1
+📉 Team Deduction (Bottom Performance)
+Last Team: -3 points
+Second Last: -2 points
+Third Last: -1 point
+
+👉 Keeps pressure without destroying morale
+
+🏎️ 3. DUO CLASH
+Participation:
++4 per racer → +8 per team
+Position Points:
+1st: +8
+2nd: +6
+3rd: +5
+4th: +4
+5th: +3
+6th+: +2
+
+👉 ❌ No deduction here (already smaller race)
+
+⚔️ 4. SOLO SHOWDOWN
+Participation: +3
+Winner: +7
+
+👉 Win = 10 points
+👉 Lose = 3 points
+
+🎲 5. RIVALRY CLASH
+Teams bet points
+
+👉 Example:
+
+Bet 10
+Winner: +10
+Loser: -10
+
+🎯 6. CONSISTENCY BONUS
++5 Points if ALL achieved:
+Team GP → Top 5
+Duo → Top 3
+Solo → Win
+
+🚫 7. STRICT PENALTY SYSTEM
+🔴 DIRTY DRIVING
+Minor:
+Warning or +5 sec penalty
+Moderate:
+Position drop (3–5 places)
+
+Major:
+❌ Disqualification
+❌ Player gets 0 points
+Severe (intentional crash):
+❌ Disqualification
+❌ Team: -5 points
+🔁 REPEAT OFFENSE
+1st → penalty
+2nd → disqualification
+3rd → race ban
+🚫 DISCONNECT RULE
+Disconnect = last position
+No extra deduction
+❌ REFUSAL TO PLAY
+If team refuses any race:
+
+👉 Penalty:
+
+💰 $300,000 – $500,000
+❌ Additional: -10 points
+⚠️ WRONG PARTICIPATION
+Using restricted player:
+Player = 0 points
+Repeated violation:
+Team: -5 points
+
+
+📊 FULL EXAMPLE (5 TEAMS – ONE DAY)
+🏁 TEAM GRAND PRIX
+Team	Points
+A	38
+B	33
+C	27
+D	25
+E	23 - 3 = 20
+
+
+🏎️ DUO CLASH
+Team	Points
+B	16
+A	14
+C	13
+D	12
+E	11
+
+
+⚔️ SOLO SHOWDOWN
+Team	Points
+C	10
+A	3
+B	3
+D	3
+E	3
+
+
+🎯 BONUS
+Team	Bonus
+A	+5
+
+
+📊 FINAL TOTAL
+Team	Total
+A	60
+B	52
+C	50
+D	40
+E	34
+
+
+⚠️ PENALTY SCENARIOS
+🚫 Dirty Play (Team B)
+Player disqualified
+Team penalty: -5
+
+👉 New Total:
+
+52 → 47
+❌ Refusal (Team D skips race)
+-10 points
+$ penalty
+
+👉 New Total:
+
+40 → 30
+🎲 Rivalry Loss (Team C loses 10 bet)
+
+👉 New Total:
+
+50 → 40
+
+
+🧠 FINAL BALANCE
+Factor	Impact
+Team GP	🔥 Highest
+Duo	🔥 Medium
+Solo	🔥 Tactical
+Bonus	🎯 Important
+
+
+Penalties	⚠️ Control
+🧠 SIMPLE VERSION
+Perform well → gain points
+Perform badly → small loss
+Cheat → big loss
+Skip → big punishment
+
+
+🧠 FINAL TRUTH
+
+Now your system is:
+
+👉 Rewarding
+👉 Punishing
+👉 Balanced
+
+And most importantly:
+
+👉 Teams won’t lose because of one bad race…
+👉 But they will lose if they play stupidly

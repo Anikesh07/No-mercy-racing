@@ -1,0 +1,164 @@
+🏁 MATCH FIXTURE SYSTEM (FULL WORKFLOW)
+
+This is how everything runs daily, per team, per driver without chaos.
+
+📅 1. DAILY STRUCTURE (SAME EVERY DAY)
+
+Each day follows this order:
+
+Team Grand Prix (All Teams – 4 drivers each)
+Duo Clash (2 drivers per team)
+Solo Showdown (1v1 round-robin matches)
+Optional: Rivalry Clash
+
+👉 Same flow every day = no confusion
+
+👥 2. TEAM SETUP (PER DAY)
+
+Each team submits before races:
+
+4 players → Team Grand Prix
+Remaining eligible players → Duo + Solo
+
+👉 Once submitted:
+❌ No changes (unless swap rule used)
+
+🏁 3. TEAM GRAND PRIX FIXTURE
+📌 Participants:
+All teams
+4 drivers per team
+
+👉 Example (5 teams):
+
+20 players total
+🔢 Grid:
+2-line grid
+Balanced placement
+🧠 After Race:
+
+System determines:
+
+Top 3 players (restricted)
+Bottom performers
+Dominance rule (if triggered)
+🏎️ 4. DUO CLASH FIXTURE
+📌 Participants:
+2 drivers per team
+Must be:
+Eligible
+Not restricted
+
+👉 Example:
+
+5 teams → 10 players
+🧠 Selection Logic:
+Remove:
+Team GP Top 3
+Apply:
+Dominance rule if needed
+
+👉 Teams choose from remaining players
+
+⚔️ 5. SOLO SHOWDOWN FIXTURE (MOST IMPORTANT)
+📌 Format:
+Round-robin 1v1 system
+🔢 MATCH GENERATION
+
+For 5 teams:
+
+Matches:
+
+A vs B
+A vs C
+A vs D
+A vs E
+B vs C
+B vs D
+B vs E
+C vs D
+C vs E
+D vs E
+
+👉 Total = 10 matches
+
+📅 SCHEDULING (IMPORTANT)
+
+You don’t run all 10 in one day unless you enjoy burnout.
+
+👉 Recommended:
+
+2–3 matches per day
+Spread across 7 days
+👤 Driver Selection:
+1 driver per match
+Must be:
+Not in Duo Clash
+Not restricted
+🔁 6. DRIVER FLOW (VERY IMPORTANT)
+
+Each team daily:
+
+Race Type	Players Used
+Team GP	4 players
+Duo Clash	2 players
+Solo Showdown	1 player per match
+
+👉 System ensures:
+
+No overlap
+Everyone participates
+⚠️ 7. DOMINANCE RULE IMPACT
+
+If triggered:
+
+Reserve MUST play Duo + Solo
+Bottom 2 MUST play Duo + Solo
+Top players restricted
+
+👉 Fixture automatically adjusts
+
+⚔️ 8. RIVALRY CLASH FIXTURE
+📌 Works Separately
+Team challenges adjacent team
+Admin schedules match
+1v1 race
+
+👉 Can happen:
+
+After daily races
+Or separate time slot
+🧠 9. AUTOMATION LOGIC (FOR WEBSITE)
+
+Your system should:
+
+After Team GP:
+Mark restricted players
+Before Duo:
+Show eligible players only
+Before Solo:
+Auto assign or validate players
+For 1v1:
+Auto-generate match list
+📊 10. SAMPLE DAY FLOW (5 TEAMS)
+Step 1: Team GP
+20 players race
+Step 2: Duo Clash
+10 players race
+Step 3: Solo Showdown (Day Matches)
+Match 1: A vs B
+Match 2: C vs D
+Match 3: E vs A
+Step 4: Optional Rivalry
+B challenges C
+🧠 SIMPLE VERSION
+All teams race together (Team GP)
+Then split into smaller races (Duo)
+Then 1v1 battles (Solo)
+Optional challenges (Rivalry)
+🧠 FINAL TRUTH
+
+If you follow this:
+
+👉 No confusion
+👉 No overlap
+👉 No excuses
