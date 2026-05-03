@@ -34,34 +34,98 @@ function cleanTeamIds(teamIds) {
 }
 
 router.get("/dashboard", async (_req, res) => {
-  const [teams, drivers, matches, penalties] = await Promise.all([
-    Team.find().sort({ createdAt: -1 }),
-    Driver.find().populate("teamId", "crewName").sort({ alias: 1 }),
-    Match.find().populate("teams", "crewName").populate("participants.driverIds", "alias status role").sort({ raceDate: 1, raceTime: 1, day: 1, slot: 1 }),
-    Penalty.find().populate("teamId", "crewName").populate("driverId", "alias").sort({ createdAt: -1 })
-  ]);
-  res.json({ teams, drivers, matches, penalties });
+  try {
+    const [teams, drivers, matches, penalties] = await Promise.all([
+      Team.find().sort({ createdAt: -1 }),
+      Driver.find().populate("teamId", "crewName").sort({ alias: 1 }),
+      Match.find()
+        .populate("teams", "crewName")
+        .populate("participants.driverIds", "alias status role")
+        .sort({ raceDate: 1, raceTime: 1, day: 1, slot: 1 }),
+      Penalty.find()
+        .populate("teamId", "crewName")
+        .populate("driverId", "alias")
+        .sort({ createdAt: -1 })
+    ]);
+
+    res.json({ teams, drivers, matches, penalties });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to load dashboard" });
+  }
 });
 
 router.patch("/teams/:id/status", async (req, res) => {
-  const team = await Team.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true });
-  res.json(team);
+  try {
+    const { status } = req.body;
+
+    // ✅ Normalize input (avoid "approved", "APPROVED", etc.)
+    const normalizedStatus =
+      typeof status === "string" ? status.trim() : "";
+
+    const allowedStatuses = ["Pending", "Approved", "Rejected"];
+
+    // ❌ Validate input
+    if (!allowedStatuses.includes(normalizedStatus)) {
+      return res.status(400).json({
+        message: "Invalid status value"
+      });
+    }
+
+    // ❌ Validate ID format (prevents Mongo crash)
+    if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        message: "Invalid team ID"
+      });
+    }
+
+    const team = await Team.findByIdAndUpdate(
+      req.params.id,
+      { status: normalizedStatus },
+      { new: true }
+    );
+
+    // ❌ Check if team exists
+    if (!team) {
+      return res.status(404).json({ message: "Team not found" });
+    }
+
+    res.json(team);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update status" });
+  }
 });
 
 router.get("/chat", async (_req, res) => {
-  const messages = await AdminMessage.find().sort({ createdAt: -1 }).limit(80);
-  res.json(messages.reverse());
+  try {
+    const messages = await AdminMessage.find().sort({ createdAt: -1 }).limit(80);
+    res.json(messages.reverse());
+  } catch (err) {
+    res.status(500).json({ message: "Failed to load chat" });
+  }
 });
-
 router.post("/chat", async (req, res) => {
-  const message = String(req.body.message || "").trim();
-  if (!message) return res.status(400).json({ message: "Message is required" });
+  try {
+    const message = String(req.body.message || "").trim();
 
-  const created = await AdminMessage.create({
-    author: req.admin?.username || "admin",
-    message
-  });
-  res.status(201).json(created);
+    // ❌ Empty message
+    if (!message) {
+      return res.status(400).json({ message: "Message is required" });
+    }
+
+    // ❌ Too long (basic spam control)
+    if (message.length > 300) {
+      return res.status(400).json({ message: "Message too long (max 300 chars)" });
+    }
+
+    const created = await AdminMessage.create({
+      author: req.admin?.username || "admin",
+      message
+    });
+
+    res.status(201).json(created);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to send message" });
+  }
 });
 
 router.post("/fixtures/generate", async (req, res) => {
@@ -74,13 +138,35 @@ router.post("/fixtures/generate", async (req, res) => {
 });
 
 router.post("/fixtures/publish", async (_req, res) => {
-  const result = await Match.updateMany({ status: "Pending" }, { $set: { isPublished: true } });
-  res.json({ published: result.modifiedCount });
+  try {
+    const result = await Match.updateMany(
+      { status: "Pending" },
+      { $set: { isPublished: true } }
+    );
+
+    res.json({
+      message: "Fixtures published successfully",
+      published: result.modifiedCount
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to publish fixtures" });
+  }
 });
 
 router.post("/fixtures/unpublish", async (_req, res) => {
-  const result = await Match.updateMany({ status: "Pending" }, { $set: { isPublished: false } });
-  res.json({ unpublished: result.modifiedCount });
+  try {
+    const result = await Match.updateMany(
+      { status: "Pending" },
+      { $set: { isPublished: false } }
+    );
+
+    res.json({
+      message: "Fixtures unpublished successfully",
+      unpublished: result.modifiedCount
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to unpublish fixtures" });
+  }
 });
 
 router.post("/matches", async (req, res) => {
@@ -92,19 +178,46 @@ router.post("/matches", async (req, res) => {
     }
     if (teamIds.length < 1) return res.status(400).json({ message: "Select at least one team" });
 
-    const match = await Match.create({
-      day: Number(req.body.day) || 1,
-      slot: Number(req.body.slot) || 1,
-      raceDate: parseRaceDate(req.body.raceDate),
-      raceTime: req.body.raceTime || "",
-      trackName: req.body.trackName || "",
-      carName: req.body.carName || "",
-      type,
-      teams: teamIds,
-      participants: await buildParticipants(teamIds, type),
-      notes: req.body.notes || "",
-      isPublished: Boolean(req.body.isPublished)
-    });
+   const day = Math.max(1, Number(req.body.day) || 1);
+const slot = Math.max(1, Number(req.body.slot) || 1);
+
+const match = await Match.create({
+  day,
+  slot,
+
+  raceDate:
+    req.body.raceDate !== undefined
+      ? parseRaceDate(req.body.raceDate)
+      : undefined,
+
+  raceTime:
+    req.body.raceTime !== undefined
+      ? String(req.body.raceTime).trim()
+      : "",
+
+  trackName:
+    req.body.trackName !== undefined
+      ? String(req.body.trackName).trim()
+      : "",
+
+  carName:
+    req.body.carName !== undefined
+      ? String(req.body.carName).trim()
+      : "",
+
+  type,
+
+  teams: teamIds,
+
+  participants: await buildParticipants(teamIds, type),
+
+  notes:
+    req.body.notes !== undefined
+      ? String(req.body.notes).trim()
+      : "",
+
+  isPublished: Boolean(req.body.isPublished)
+});
 
     const populated = await Match.findById(match._id).populate("teams", "crewName").populate("participants.driverIds", "alias status role");
     res.status(201).json(populated);
@@ -126,16 +239,30 @@ router.patch("/matches/:id", async (req, res) => {
     }
     if (teamIds.length < 1) return res.status(400).json({ message: "Select at least one team" });
 
-    match.day = Number(req.body.day) || match.day;
-    match.slot = Number(req.body.slot) || match.slot;
-    match.raceDate = parseRaceDate(req.body.raceDate);
-    match.raceTime = req.body.raceTime || "";
-    match.trackName = req.body.trackName || "";
-    match.carName = req.body.carName || "";
+    if (req.body.day !== undefined) {
+  match.day = Math.max(1, Number(req.body.day) || match.day);
+}
+if (req.body.slot !== undefined) {
+  match.slot = Math.max(1, Number(req.body.slot) || match.slot);
+}
+    if (req.body.raceDate !== undefined) {
+  match.raceDate = parseRaceDate(req.body.raceDate);
+}
+if (req.body.raceTime !== undefined) {
+  match.raceTime = req.body.raceTime;
+}
+if (req.body.trackName !== undefined) {
+  match.trackName = req.body.trackName;
+}
+if (req.body.carName !== undefined) {
+  match.carName = req.body.carName;
+}
     match.type = type;
     match.teams = teamIds;
     match.participants = await buildParticipants(teamIds, type);
-    match.notes = req.body.notes || "";
+    if (req.body.notes !== undefined) {
+  match.notes = String(req.body.notes).trim();
+}
     match.isPublished = Boolean(req.body.isPublished);
     await match.save();
 
@@ -148,61 +275,262 @@ router.patch("/matches/:id", async (req, res) => {
 
 router.patch("/matches/:id/assign", async (req, res) => {
   try {
-    const match = await assignDrivers(req.params.id, req.body.participants);
+    const { participants } = req.body;
+
+    // ❌ Validate structure
+    if (!Array.isArray(participants) || participants.length === 0) {
+      return res.status(400).json({
+        message: "Participants must be a non-empty array"
+      });
+    }
+
+    // ❌ Validate each participant entry
+    for (const p of participants) {
+      if (!p.teamId || !Array.isArray(p.driverIds)) {
+        return res.status(400).json({
+          message: "Each participant must have teamId and driverIds[]"
+        });
+      }
+    }
+
+    // ❌ Validate match ID format (avoid Mongo crash)
+    if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({
+        message: "Invalid match ID"
+      });
+    }
+
+    const match = await assignDrivers(req.params.id, participants);
+
+    if (!match) {
+      return res.status(404).json({ message: "Match not found" });
+    }
+
     res.json(match);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({
+      message: error.message || "Failed to assign drivers"
+    });
   }
 });
 
+
+router.patch("/teams/:id", async (req, res) => {
+  try {
+    const { crewName, leaderName, points } = req.body;
+
+    const team = await Team.findByIdAndUpdate(
+      req.params.id,
+      {
+        ...(crewName !== undefined && { crewName }),
+...(leaderName !== undefined && { leaderName }),
+...(points !== undefined && { points: Math.max(0, Number(points) || 0) })
+      },
+      { new: true }
+    );
+
+    res.json(team);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to update team" });
+  }
+});
+
+
+
+router.delete("/teams/:id", async (req, res) => {
+  try {
+    const teamId = req.params.id;
+
+    // ✅ Check if team exists FIRST
+    const team = await Team.findById(teamId);
+    if (!team) {
+      return res.status(404).json({ message: "Team not found" });
+    }
+
+    // ✅ Delete all drivers of this team
+    await Driver.deleteMany({ teamId });
+
+    // ✅ Remove team from match teams array
+    await Match.updateMany(
+      { teams: teamId },
+      { $pull: { teams: teamId } }
+    );
+
+    // ✅ Remove team from participants
+    await Match.updateMany(
+      { "participants.teamId": teamId },
+      { $pull: { participants: { teamId } } }
+    );
+
+    // ✅ Finally delete team
+    await Team.findByIdAndDelete(teamId);
+
+    res.json({ message: "Team deleted safely" });
+  } catch (err) {
+    res.status(500).json({ message: "Delete failed" });
+  }
+});
+
+
 router.post("/matches/:id/results", async (req, res) => {
   try {
-    const match = await applyResults(req.params.id, req.body.results);
+    const { results } = req.body;
+
+    // ❌ Basic validation
+    if (!Array.isArray(results) || results.length === 0) {
+      return res.status(400).json({
+        message: "Results must be a non-empty array"
+      });
+    }
+
+    // ❌ Validate each result entry
+    for (const r of results) {
+      if (!r.teamId || typeof r.position !== "number") {
+        return res.status(400).json({
+          message: "Each result must include teamId and numeric position"
+        });
+      }
+
+      if (r.position < 1) {
+        return res.status(400).json({
+          message: "Position must be >= 1"
+        });
+      }
+    }
+
+    const match = await applyResults(req.params.id, results);
+
     res.json(match);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    res.status(400).json({
+      message: error.message || "Failed to apply results"
+    });
   }
 });
 
 router.post("/matches/:id/povs", async (req, res) => {
-  const { driverId, url } = req.body;
-  const match = await Match.findById(req.params.id);
-  if (!match) return res.status(404).json({ message: "Match not found" });
-  if (match.povs.some((pov) => String(pov.driverId) === String(driverId))) {
-    return res.status(400).json({ message: "POV already uploaded for this driver and match" });
+  try {
+    const { driverId, url } = req.body;
+
+    if (!driverId || !url || typeof url !== "string") {
+      return res.status(400).json({ message: "Invalid POV data" });
+    }
+
+    const match = await Match.findById(req.params.id);
+    if (!match) return res.status(404).json({ message: "Match not found" });
+
+    if (match.povs.some((p) => String(p.driverId) === String(driverId))) {
+      return res.status(400).json({ message: "POV already uploaded" });
+    }
+
+    match.povs.push({ driverId, url: url.trim() });
+    await match.save();
+
+    res.status(201).json(match);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to upload POV" });
   }
-  match.povs.push({ driverId, url });
-  await match.save();
-  res.status(201).json(match);
 });
 
 router.post("/penalties", async (req, res) => {
-  const { teamId, driverId, matchId, type, pointsDelta = 0, restrictionDays = 0, reason } = req.body;
-  const penalty = await Penalty.create({ teamId, driverId, matchId, type, pointsDelta, restrictionDays, reason });
-  if (pointsDelta) await Team.findByIdAndUpdate(teamId, { $inc: { points: pointsDelta } });
-  if (driverId && (type === "Player Restriction" || restrictionDays > 0)) {
-    await Driver.findByIdAndUpdate(driverId, {
-      status: "Restricted",
-      restrictionReason: reason || `Restricted for ${restrictionDays} day(s)`
+  try {
+    let {
+      teamId,
+      driverId,
+      matchId,
+      type,
+      pointsDelta = 0,
+      restrictionDays = 0,
+      reason
+    } = req.body;
+
+    // ❌ Basic validation
+    if (!teamId || !type) {
+      return res.status(400).json({ message: "teamId and type are required" });
+    }
+
+    // ✅ Clamp points to safe range
+    const safePoints = Math.max(-1000, Math.min(1000, Number(pointsDelta) || 0));
+
+    // ✅ Clamp restriction days
+    const safeDays = Math.max(0, Math.min(30, Number(restrictionDays) || 0));
+
+    const penalty = await Penalty.create({
+      teamId,
+      driverId,
+      matchId,
+      type,
+      pointsDelta: safePoints,
+      restrictionDays: safeDays,
+      reason: reason ? String(reason).trim() : ""
     });
+
+    // ✅ Apply team points safely
+    if (safePoints) {
+      await Team.findByIdAndUpdate(teamId, { $inc: { points: safePoints } });
+    }
+
+    // ✅ Apply driver restriction
+    if (driverId && (type === "Player Restriction" || safeDays > 0)) {
+      await Driver.findByIdAndUpdate(driverId, {
+        status: "Restricted",
+        restrictionReason:
+          reason || `Restricted for ${safeDays} day(s)`
+      });
+    }
+
+    res.status(201).json(penalty);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to apply penalty" });
   }
-  res.status(201).json(penalty);
 });
 
 router.post("/rivalry", async (req, res) => {
-  const { day, slot = 99, teamIds, driverIds = [], betPoints = 0 } = req.body;
-  if (!Array.isArray(teamIds) || teamIds.length !== 2) {
-    return res.status(400).json({ message: "Rivalry Clash requires exactly 2 teams" });
+  try {
+    let { day, slot = 99, teamIds, driverIds = [], betPoints = 0 } = req.body;
+
+    // ❌ Validate teams
+    if (!Array.isArray(teamIds) || teamIds.length !== 2) {
+      return res.status(400).json({
+        message: "Rivalry Clash requires exactly 2 teams"
+      });
+    }
+
+    // ✅ Safe numbers
+    const safeDay = Math.max(1, Number(day) || 1);
+    const safeSlot = Math.max(1, Number(slot) || 99);
+    const safeBet = Math.max(0, Number(betPoints) || 0);
+
+    // ❌ Prevent same team vs itself (yes, people try this)
+    if (String(teamIds[0]) === String(teamIds[1])) {
+      return res.status(400).json({
+        message: "A team cannot challenge itself"
+      });
+    }
+
+    // ❌ Validate driverIds (optional but safe)
+    const participants = teamIds.map((teamId, index) => {
+      const driverId = driverIds[index];
+
+      return {
+        teamId,
+        driverIds: driverId ? [driverId] : []
+      };
+    });
+
+    const match = await Match.create({
+      day: safeDay,
+      slot: safeSlot,
+      type: "Rivalry",
+      teams: teamIds,
+      betPoints: safeBet,
+      participants
+    });
+
+    res.status(201).json(match);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to create rivalry match" });
   }
-  const match = await Match.create({
-    day,
-    slot,
-    type: "Rivalry",
-    teams: teamIds,
-    betPoints,
-    participants: teamIds.map((teamId, index) => ({ teamId, driverIds: driverIds[index] ? [driverIds[index]] : [] }))
-  });
-  res.status(201).json(match);
 });
 
 export default router;

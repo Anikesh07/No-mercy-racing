@@ -95,6 +95,8 @@ export default function Admin() {
   const [fixtureForm, setFixtureForm] = useState({ teamCount: 8, startDate: "", shuffle: true });
   const [activeSection, setActiveSection] = useState("overview");
   const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [editingTeam, setEditingTeam] = useState(null);
 
   const isAuthed = Boolean(token);
 
@@ -143,6 +145,27 @@ export default function Admin() {
     await load();
   };
 
+const deleteTeam = async (id) => {
+  if (!window.confirm("Are you sure you want to delete this team?")) return;
+
+  await api.delete(`/admin/teams/${id}`);
+  await load();
+};
+
+const updateTeam = async (team) => {
+  setSaving(true);
+
+  await api.patch(`/admin/teams/${team._id}`, {
+    crewName: team.crewName,
+    leaderName: team.leaderName,
+    points: team.points === "" ? 0 : Number(team.points)
+  });
+
+  await load();
+setSaving(false);
+setEditingTeam(null);
+};
+
   const generateFixtures = async () => {
     try {
       const payload = {
@@ -176,7 +199,7 @@ export default function Admin() {
       {message && <p className="mb-4 rounded-lg border border-neonBlue/30 bg-neonBlue/10 p-3 text-sm text-neonBlue">{message}</p>}
 
       <nav className="mb-5 rounded-lg border border-white/10 bg-white/[0.03] p-2 backdrop-blur-xl">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 relative z-10 bg-black/40 p-2 rounded-lg mb-3">
           {adminSections.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -224,9 +247,44 @@ export default function Admin() {
                     <td className="text-neonBlue">{team.points}</td>
                     <td><Badge tone={team.status === "Approved" ? "green" : team.status === "Rejected" ? "red" : "yellow"}>{team.status}</Badge></td>
                     <td className="flex gap-2 py-2">
-                      <button title="Approve" onClick={() => approve(team._id, "Approved")} className="rounded-lg border border-emerald-400/40 p-2 text-emerald-300"><Check className="h-4 w-4" /></button>
-                      <button title="Reject" onClick={() => approve(team._id, "Rejected")} className="rounded-lg border border-red-400/40 p-2 text-red-300"><CircleSlash className="h-4 w-4" /></button>
-                    </td>
+
+  {/* Approve */}
+  <button
+    title="Approve"
+    onClick={() => approve(team._id, "Approved")}
+    className="rounded-lg border border-emerald-400/40 p-2 text-emerald-300"
+  >
+    <Check className="h-4 w-4" />
+  </button>
+
+  {/* Reject */}
+  <button
+    title="Reject"
+    onClick={() => approve(team._id, "Rejected")}
+    className="rounded-lg border border-red-400/40 p-2 text-red-300"
+  >
+    <CircleSlash className="h-4 w-4" />
+  </button>
+
+  {/* Edit */}
+  <button
+    title="Edit"
+    onClick={() => setEditingTeam(team)}
+    className="rounded-lg border border-neonBlue/40 p-2 text-neonBlue"
+  >
+    ✏️
+  </button>
+
+  {/* Delete */}
+  <button
+    title="Delete"
+    onClick={() => deleteTeam(team._id)}
+    className="rounded-lg border border-red-500/40 p-2 text-red-500"
+  >
+    🗑
+  </button>
+
+</td>
                   </tr>
                 ))}
               </tbody>
@@ -234,12 +292,96 @@ export default function Admin() {
           </div>
         </Panel>}
 
-        {activeSection === "results" && <ResultEntry matches={dashboard.matches} drivers={dashboard.drivers} onDone={load} />}
-        {activeSection === "penalties" && <PenaltyEntry teams={dashboard.teams} drivers={dashboard.drivers} matches={dashboard.matches} onDone={load} />}
-        {activeSection === "povs" && <PovEntry matches={dashboard.matches} drivers={dashboard.drivers} onDone={load} />}
-        {activeSection === "eligibility" && <Eligibility drivers={dashboard.drivers} />}
+        {activeSection === "results" && (
+          <ResultEntry
+            matches={dashboard.matches}
+            drivers={dashboard.drivers}
+            onDone={load}
+          />
+        )}
+
+        {activeSection === "penalties" && (
+          <PenaltyEntry
+            teams={dashboard.teams}
+            drivers={dashboard.drivers}
+            matches={dashboard.matches}
+            onDone={load}
+          />
+        )}
+
+        {activeSection === "povs" && (
+          <PovEntry
+            matches={dashboard.matches}
+            drivers={dashboard.drivers}
+            onDone={load}
+          />
+        )}
+
+        {activeSection === "eligibility" && (
+          <Eligibility drivers={dashboard.drivers} />
+        )}
+
         {activeSection === "chat" && <AdminChat />}
       </div>
+
+      {/* 🔥 EDIT TEAM MODAL (ADD HERE) */}
+      {editingTeam && (
+        <div
+  className="fixed inset-0 flex items-center justify-center bg-black/70 z-50"
+  onClick={() => setEditingTeam(null)}
+>
+  <div
+    className="bg-black p-6 rounded-xl w-[400px] space-y-3 border border-white/10"
+    onClick={(e) => e.stopPropagation()}
+  >
+
+            <h2 className="text-lg font-bold">Edit Team</h2>
+
+            <input
+              className="w-full p-2 bg-white/10 rounded"
+              value={editingTeam.crewName}
+              onChange={(e) =>
+                setEditingTeam({ ...editingTeam, crewName: e.target.value })
+              }
+            />
+
+            <input
+              className="w-full p-2 bg-white/10 rounded"
+              value={editingTeam.leaderName}
+              onChange={(e) =>
+                setEditingTeam({ ...editingTeam, leaderName: e.target.value })
+              }
+            />
+
+            <input
+              type="number"
+              className="w-full p-2 bg-white/10 rounded"
+              value={editingTeam.points}
+              onChange={(e) =>
+                setEditingTeam({ ...editingTeam, points: e.target.value })
+              }
+            />
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setEditingTeam(null)}
+                className="px-3 py-2 border border-white/20 rounded"
+              >
+                Cancel
+              </button>
+
+              <button
+  disabled={saving}
+  onClick={() => updateTeam(editingTeam)}
+  className="px-3 py-2 bg-neonBlue text-black rounded disabled:opacity-50"
+>
+  {saving ? "Saving..." : "Save"}
+</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </main>
   );
 }
@@ -277,7 +419,7 @@ function Overview({ dashboard }) {
 
       <div className="grid gap-5 xl:grid-cols-[1fr_1.35fr]">
         <Panel title="Event Summary" action={<LayoutDashboard className="h-5 w-5 text-neonBlue" />}>
-          <div className="grid gap-3">
+          <div className="grid gap-3 mt-4 relative z-0">
             {Object.keys(raceTotals).length === 0 && <p className="text-sm text-slate-400">Create fixtures to see event totals.</p>}
             {Object.entries(raceTotals).map(([label, value]) => (
               <div key={label} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3">
@@ -289,7 +431,7 @@ function Overview({ dashboard }) {
         </Panel>
 
         <Panel title="Upcoming Races" action={<Clock className="h-5 w-5 text-neonPink" />}>
-          <div className="grid gap-3">
+          <div className="grid gap-3 mt-4 relative z-0">
             {upcomingMatches.length === 0 && <p className="text-sm text-slate-400">No upcoming races yet.</p>}
             {upcomingMatches.map((match) => (
               <div key={match._id} className="grid gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-3 md:grid-cols-[90px_140px_120px_1fr] md:items-center">
@@ -407,11 +549,11 @@ function FixtureManager({ teams, matches, fixtureForm, setFixtureForm, generateF
 
       <Panel title="Publish Control" action={<Eye className="h-5 w-5 text-neonBlue" />}>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 relative z-10 bg-black/40 p-2 rounded-lg mb-3">
             <Badge tone="yellow">{draftCount} draft</Badge>
             <Badge tone="green">{publishedCount} published</Badge>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 relative z-10 bg-black/40 p-2 rounded-lg mb-3">
             <button onClick={unpublishAll} className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-slate-200 hover:bg-white/10">
               <EyeOff className="h-4 w-4" /> Hide All
             </button>
@@ -432,8 +574,8 @@ function FixtureManager({ teams, matches, fixtureForm, setFixtureForm, generateF
       </Panel>
 
       <Panel title="Date Wise Fixture Schedule" action={<Save className="h-5 w-5 text-neonBlue" />}>
-        <div className="grid gap-3">
-          <div className="flex flex-wrap gap-2">
+  <div className="grid gap-4 mt-6 relative z-0">
+          <div className="flex flex-wrap gap-2 relative z-10 bg-black/40 p-2 rounded-lg mb-3">
             {dayFilters.map((filter) => (
               <button
                 key={filter.id}
@@ -552,22 +694,36 @@ function FixtureEditRow({ match, teams, onDone, onMessage }) {
     isPublished: Boolean(match.isPublished)
   });
 
-  const save = async () => {
-    const teamIds = form.teamMode === "all" && !["Solo", "Rivalry"].includes(form.type)
+const save = async () => {
+  const teamIds =
+    form.teamMode === "all" && !["Solo", "Rivalry"].includes(form.type)
       ? teams.map((team) => team._id)
       : [form.teamA, form.teamB].filter(Boolean);
-    await api.patch(`/admin/matches/${match._id}`, {
-      ...form,
-      day: Number(form.day),
-      slot: Number(form.slot),
-      teamIds
-    });
-    onMessage("Fixture saved.");
-    await onDone();
-  };
+
+  const res = await api.patch(`/admin/matches/${match._id}`, {
+    ...form,
+    day: Number(form.day),
+    slot: Number(form.slot),
+    teamIds
+  });
+
+  // ✅ THIS LINE IS THE ACTUAL FIX
+  setForm((prev) => ({
+    ...prev,
+    isPublished: res.data.isPublished
+  }));
+
+  onMessage(
+    res.data.isPublished
+      ? "Fixture saved & visible on website."
+      : "Fixture saved & hidden from website."
+  );
+
+  await onDone();
+};
 
   return (
-    <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+    <div className="relative z-0 rounded-lg border border-white/10 bg-white/[0.03] p-3 mb-3">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <Badge tone={form.isPublished ? "green" : "yellow"}>{form.isPublished ? "Published" : "Draft"}</Badge>
@@ -576,7 +732,7 @@ function FixtureEditRow({ match, teams, onDone, onMessage }) {
         </div>
         <label className="flex items-center gap-2 text-sm text-slate-300">
           <input type="checkbox" checked={form.isPublished} onChange={(event) => setForm({ ...form, isPublished: event.target.checked })} />
-          Show on main website
+          Show on main website (Save to apply)
         </label>
       </div>
       <div className="grid gap-3 md:grid-cols-[repeat(auto-fit,minmax(150px,1fr))] md:items-end">
@@ -679,7 +835,7 @@ function ResultEntry({ matches, drivers, onDone }) {
 
   return (
     <Panel title="Result Entry">
-      <div className="grid gap-3">
+      <div className="grid gap-3 mt-4 relative z-0">
         <select value={matchId} onChange={(e) => setMatchId(e.target.value)} className="px-3 py-2">
           <option value="">Select match</option>
           {matches.filter((match) => match.status === "Pending").map((match) => (
@@ -772,3 +928,5 @@ function Eligibility({ drivers }) {
 function updateRows(rows, index, key, value) {
   return rows.map((row, rowIndex) => (rowIndex === index ? { ...row, [key]: value } : row));
 }
+
+

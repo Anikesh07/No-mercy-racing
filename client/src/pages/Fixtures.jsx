@@ -44,6 +44,7 @@ function raceTimeLabel(time) {
 
 export default function Fixtures() {
   const [fixtures, setFixtures] = useState([]);
+  const [dayFilter, setDayFilter] = useState("all");
 
   useEffect(() => {
     api
@@ -52,8 +53,11 @@ export default function Fixtures() {
       .catch(() => {});
   }, []);
 
-  // 🔥 THIS is the actual fix
-  const visibleFixtures = fixtures.filter((match) => match.isPublished);
+  const visibleFixtures = fixtures.filter(
+    (match) =>
+      match.isPublished &&
+      (dayFilter === "all" || String(match.day) === dayFilter)
+  );
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
@@ -65,11 +69,27 @@ export default function Fixtures() {
       </div>
 
       <Panel title="7-Day Match Schedule">
+        {/* Day filter */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {["all", "1", "2", "3", "4", "5", "6", "7"].map((day) => (
+            <button
+              key={day}
+              onClick={() => setDayFilter(day)}
+              className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+                dayFilter === day
+                  ? "border-neonPink/50 bg-neonPink text-black"
+                  : "border-white/10 text-slate-300 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              {day === "all" ? "All" : `Day ${day}`}
+            </button>
+          ))}
+        </div>
+
         <div className="grid gap-3">
-          {/* Empty state (fixed, not misleading anymore) */}
           {visibleFixtures.length === 0 && (
             <p className="text-sm text-slate-400">
-              No published fixtures yet.
+              No published fixtures for this filter.
             </p>
           )}
 
@@ -78,9 +98,7 @@ export default function Fixtures() {
               key={match._id}
               className="grid gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-4 md:grid-cols-[120px_150px_130px_90px_140px_140px_1fr_110px] md:items-center"
             >
-              <Badge
-                tone={match.status === "Completed" ? "green" : "yellow"}
-              >
+              <Badge tone={match.status === "Completed" ? "green" : "yellow"}>
                 Day {match.day}
               </Badge>
 
@@ -102,15 +120,18 @@ export default function Fixtures() {
                 {match.carName || "Car TBA"}
               </span>
 
+              {/* 🔥 THIS IS THE ONLY IMPORTANT CHANGE */}
               <span className="text-slate-300">
-                {match.teams
-                  ?.map((team) => team.crewName)
-                  .join(" vs ") || "All approved teams"}
+                {match.type === "Team"
+                  ? "All Teams"
+                  : match.type === "Duo"
+                  ? "All Teams (2 racers)"
+                  : match.teams
+                      ?.map((team) => team.crewName)
+                      .join(" vs ") || "All approved teams"}
               </span>
 
-              <Badge
-                tone={match.status === "Completed" ? "green" : "purple"}
-              >
+              <Badge tone={match.status === "Completed" ? "green" : "purple"}>
                 {match.status}
               </Badge>
             </div>
