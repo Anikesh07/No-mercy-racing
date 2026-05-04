@@ -6,6 +6,7 @@ const navItems = [
   ["/register", "Register"],
   ["/leaderboards", "Leaderboards"],
   ["/fixtures", "Fixtures"],
+  ["/pov-submit", "Submit POV"],
   ["/rules", "Rules"]
 ];
 
@@ -19,7 +20,7 @@ export default function App() {
               <Flag className="h-6 w-6 text-neonPink" />
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.3em] text-neonBlue">GTA V Esports</p>
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-neonBlue">HydraLyx</p>
               <h1 className="text-xl font-black sm:text-2xl">No Mercy Racing League</h1>
             </div>
           </NavLink>

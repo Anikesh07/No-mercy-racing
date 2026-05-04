@@ -49,3 +49,48 @@ select option {
 .table-scroll {
   overflow-x: auto;
 }
+
+
+.input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: white;
+  outline: none;
+  transition: 0.2s;
+}
+
+.input:focus {
+  border-color: #ff2dbd;
+  box-shadow: 0 0 0 2px rgba(255,45,189,0.3);
+}
+
+.section-title {
+  @apply flex items-center gap-2 text-xl font-bold mb-4 text-white;
+}
+
+.race-card {
+  @apply rounded-xl border border-white/10 bg-black/30 p-4 hover:border-neonPink/40 transition;
+}
+
+.highlight-card {
+  @apply rounded-xl border border-neonPink/40 bg-neonPink/10 p-6 shadow-glow;
+}
+
+.race-box {
+  @apply rounded-xl border border-white/10 bg-black/30 p-4 hover:border-neonPink/40 transition;
+}
+
+.team-highlight {
+  @apply rounded-xl border border-neonPink/40 bg-neonPink/10 p-8 text-center shadow-glow;
+}
+@keyframes pulseGlow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.text-yellow-400 {
+  animation: pulseGlow 2s infinite;
+}

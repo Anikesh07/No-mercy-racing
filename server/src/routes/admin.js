@@ -408,29 +408,6 @@ router.post("/matches/:id/results", async (req, res) => {
   }
 });
 
-router.post("/matches/:id/povs", async (req, res) => {
-  try {
-    const { driverId, url } = req.body;
-
-    if (!driverId || !url || typeof url !== "string") {
-      return res.status(400).json({ message: "Invalid POV data" });
-    }
-
-    const match = await Match.findById(req.params.id);
-    if (!match) return res.status(404).json({ message: "Match not found" });
-
-    if (match.povs.some((p) => String(p.driverId) === String(driverId))) {
-      return res.status(400).json({ message: "POV already uploaded" });
-    }
-
-    match.povs.push({ driverId, url: url.trim() });
-    await match.save();
-
-    res.status(201).json(match);
-  } catch (err) {
-    res.status(500).json({ message: "Failed to upload POV" });
-  }
-});
 
 router.post("/penalties", async (req, res) => {
   try {
@@ -532,5 +509,84 @@ router.post("/rivalry", async (req, res) => {
     res.status(500).json({ message: "Failed to create rivalry match" });
   }
 });
+
+// ================= POV MODERATION =================
+
+// GET ALL POVs (grouped by match)
+router.get("/povs", async (req, res) => {
+  try {
+    const { day, status } = req.query;
+
+    const matches = await Match.find()
+      .populate("povs.teamId", "crewName")
+      .sort({ day: 1 });
+
+    const formatted = matches
+      .filter(m => !day || m.day == day)
+      .map(match => ({
+        matchId: match._id,
+        day: match.day,
+        type: match.type,
+        povs: match.povs
+          .filter(p => !status || p.status === status)
+          .map(p => ({
+            _id: p._id,
+            driverName: p.driverName,
+            driverId: p.driverId || null,
+            teamId: p.teamId?._id,
+            teamName: p.teamId?.crewName || "Unknown",
+            url: p.url,
+            status: p.status,
+            penalty: p.penalty,
+            createdAt: p.createdAt
+          }))
+      }));
+
+    res.json(formatted);
+  } catch {
+    res.status(500).json({ message: "Failed to load POVs" });
+  }
+});
+
+
+// UPDATE POV STATUS
+router.patch("/povs/:matchId/:povId", async (req, res) => {
+  try {
+    const { matchId, povId } = req.params;
+    const { status, penalty } = req.body;
+
+    const match = await Match.findById(matchId);
+    if (!match) return res.status(404).json({ message: "Match not found" });
+
+    const pov = match.povs.id(povId);
+    if (!pov) return res.status(404).json({ message: "POV not found" });
+
+    // ✅ STATUS UPDATE
+    if (status) {
+      const allowed = ["Pending", "Approved", "Rejected", "On Hold"];
+      if (!allowed.includes(status)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+      pov.status = status;
+    }
+
+    // ✅ APPLY PENALTY (ONLY ONCE)
+    if (typeof penalty === "boolean") {
+      if (penalty === true && !pov.penalty) {
+        await Team.findByIdAndUpdate(pov.teamId, {
+          $inc: { points: -5 } // change value if needed
+        });
+      }
+      pov.penalty = penalty;
+    }
+
+    await match.save();
+
+    res.json({ message: "POV updated successfully" });
+  } catch {
+    res.status(500).json({ message: "Failed to update POV" });
+  }
+});
+
 
 export default router;

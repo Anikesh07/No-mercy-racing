@@ -21,12 +21,42 @@ const resultSchema = new mongoose.Schema(
 
 const povSchema = new mongoose.Schema(
   {
-    driverId: { type: mongoose.Schema.Types.ObjectId, ref: "Driver", required: true },
-    url: { type: String, required: true },
-    uploadedBy: { type: String, default: "admin" },
+    // 🔗 optional link to registered driver
+    driverId: { type: mongoose.Schema.Types.ObjectId, ref: "Driver" },
+
+    // 🧾 manual entry (for player submissions)
+    driverName: { type: String, required: true, trim: true },
+
+    teamId: { type: mongoose.Schema.Types.ObjectId, ref: "Team", required: true },
+
+    raceType: {
+      type: String,
+      enum: ["Team", "Duo", "Solo", "Rivalry"],
+      required: true
+    },
+
+    url: { type: String, required: true, trim: true },
+
+    // 🔥 moderation system
+    status: {
+      type: String,
+      enum: ["Pending", "Approved", "Rejected", "On Hold"],
+      default: "Pending"
+    },
+
+    reviewReason: { type: String, default: "" },
+
+    penalty: { type: Boolean, default: false },
+
+    uploadedBy: {
+      type: String,
+      enum: ["admin", "player"],
+      default: "player"
+    },
+
     createdAt: { type: Date, default: Date.now }
   },
-  { _id: false }
+  { _id: true } // IMPORTANT: allow updating individual POVs
 );
 
 const matchSchema = new mongoose.Schema(

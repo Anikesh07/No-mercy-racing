@@ -811,57 +811,200 @@ function AdminChat() {
 
 function ResultEntry({ matches, drivers, onDone }) {
   const [matchId, setMatchId] = useState("");
-  const [rows, setRows] = useState([{ teamId: "", driverId: "", position: 1, disqualified: false }]);
-  const selectedMatch = useMemo(() => matches.find((match) => match._id === matchId), [matches, matchId]);
+  const [rows, setRows] = useState([
+    { teamId: "", driverId: "", disqualified: false }
+  ]);
+  const [message, setMessage] = useState("");
+
+  const selectedMatch = useMemo(
+    () => matches.find((m) => m._id === matchId),
+    [matches, matchId]
+  );
 
   useEffect(() => {
     if (!selectedMatch) return;
-    const initial = selectedMatch.participants.flatMap((participant, teamIndex) => {
-      const ids = participant.driverIds?.length ? participant.driverIds : [null];
-      return ids.map((driver, driverIndex) => ({
-        teamId: participant.teamId || selectedMatch.teams?.[teamIndex]?._id || "",
-        driverId: driver?._id || "",
-        position: driverIndex + 1,
-        disqualified: false
-      }));
-    });
-    setRows(initial.length ? initial : [{ teamId: "", driverId: "", position: 1, disqualified: false }]);
+
+    const initial = selectedMatch.participants.flatMap(
+      (participant, teamIndex) => {
+        const ids =
+          participant.driverIds?.length > 0
+            ? participant.driverIds
+            : [null];
+
+        return ids.map((driver) => ({
+          teamId:
+            participant.teamId ||
+            selectedMatch.teams?.[teamIndex]?._id ||
+            "",
+          driverId: driver?._id || "",
+          disqualified: false
+        }));
+      }
+    );
+
+    setRows(
+      initial.length
+        ? initial
+        : [{ teamId: "", driverId: "", disqualified: false }]
+    );
   }, [selectedMatch]);
 
   const submit = async () => {
-    await api.post(`/admin/matches/${matchId}/results`, { results: rows });
-    await onDone();
+    try {
+      const finalRows = rows.map((r, i) => ({
+        ...r,
+        position: i + 1
+      }));
+
+      await api.post(`/admin/matches/${matchId}/results`, {
+        results: finalRows
+      });
+
+      setMessage("✅ Results submitted successfully");
+
+      setTimeout(() => setMessage(""), 3000);
+
+      await onDone();
+    } catch (err) {
+      console.error(err);
+      setMessage("❌ Failed to submit results");
+      setTimeout(() => setMessage(""), 3000);
+    }
   };
 
   return (
-    <Panel title="Result Entry">
-      <div className="grid gap-3 mt-4 relative z-0">
-        <select value={matchId} onChange={(e) => setMatchId(e.target.value)} className="px-3 py-2">
-          <option value="">Select match</option>
-          {matches.filter((match) => match.status === "Pending").map((match) => (
-            <option key={match._id} value={match._id}>Day {match.day}{raceDateLabel(match)} - {raceName(match.type)} - {match.teams?.map((team) => team.crewName).join(" vs ")}</option>
-          ))}
-        </select>
-        {rows.map((row, index) => (
-          <div key={index} className="grid gap-2 md:grid-cols-[1fr_1fr_100px_130px]">
-            <select value={row.teamId} onChange={(e) => setRows(updateRows(rows, index, "teamId", e.target.value))} className="px-3 py-2">
-              <option value="">Team</option>
-              {selectedMatch?.teams?.map((team) => <option key={team._id} value={team._id}>{team.crewName}</option>)}
-            </select>
-            <select value={row.driverId} onChange={(e) => setRows(updateRows(rows, index, "driverId", e.target.value))} className="px-3 py-2">
-              <option value="">Driver optional</option>
-              {drivers.filter((driver) => !row.teamId || driver.teamId?._id === row.teamId).map((driver) => <option key={driver._id} value={driver._id}>{driver.alias}</option>)}
-            </select>
-            <input type="number" min="1" value={row.position} onChange={(e) => setRows(updateRows(rows, index, "position", Number(e.target.value)))} className="px-3 py-2" />
-            <label className="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" checked={row.disqualified} onChange={(e) => setRows(updateRows(rows, index, "disqualified", e.target.checked))} /> DQ</label>
-          </div>
-        ))}
-        <div className="flex gap-2">
-          <button onClick={() => setRows([...rows, { teamId: "", driverId: "", position: rows.length + 1, disqualified: false }])} className="rounded-lg border border-white/10 px-4 py-2">Add Result Row</button>
-          <button disabled={!matchId} onClick={submit} className="rounded-lg bg-neonBlue px-4 py-2 font-bold text-black disabled:opacity-40">Submit Results</button>
+    <>
+      {/* 🔔 NOTIFICATION */}
+      {message && (
+        <div className="fixed top-6 right-6 z-50 px-5 py-3 rounded-lg bg-black border border-white/20 text-white shadow-lg">
+          {message}
         </div>
-      </div>
-    </Panel>
+      )}
+
+      <Panel title="Result Entry">
+        <div className="grid gap-4 mt-4">
+
+          {/* MATCH SELECT */}
+          <select
+            value={matchId}
+            onChange={(e) => setMatchId(e.target.value)}
+            className="px-3 py-2"
+          >
+            <option value="">Select match</option>
+            {matches
+              .filter((m) => m.status === "Pending")
+              .map((m) => (
+                <option key={m._id} value={m._id}>
+                  Day {m.day} - {raceName(m.type)} -{" "}
+                  {m.teams?.map((t) => t.crewName).join(" vs ")}
+                </option>
+              ))}
+          </select>
+
+          {/* INFO */}
+          {matchId && (
+            <p className="text-xs text-slate-400">
+              Enter results in finishing order (Top = Winner)
+            </p>
+          )}
+
+          {/* ROWS */}
+          <div className="space-y-2">
+            {rows.map((row, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-3 border border-white/10 rounded-lg p-3 bg-white/[0.02]"
+              >
+                {/* POSITION */}
+                <div className="w-10 text-center font-bold text-neonPink">
+                  #{index + 1}
+                </div>
+
+                {/* TEAM */}
+                <select
+                  value={row.teamId}
+                  onChange={(e) =>
+                    setRows(updateRows(rows, index, "teamId", e.target.value))
+                  }
+                  className="flex-1 px-3 py-2"
+                >
+                  <option value="">Select Team</option>
+                  {selectedMatch?.teams?.map((team) => (
+                    <option key={team._id} value={team._id}>
+                      {team.crewName}
+                    </option>
+                  ))}
+                </select>
+
+                {/* DRIVER */}
+                <select
+                  value={row.driverId}
+                  onChange={(e) =>
+                    setRows(updateRows(rows, index, "driverId", e.target.value))
+                  }
+                  className="flex-1 px-3 py-2"
+                >
+                  <option value="">Driver (optional)</option>
+                  {drivers
+                    .filter(
+                      (d) =>
+                        !row.teamId ||
+                        d.teamId?._id === row.teamId
+                    )
+                    .map((d) => (
+                      <option key={d._id} value={d._id}>
+                        {d.alias}
+                      </option>
+                    ))}
+                </select>
+
+                {/* DQ */}
+                <label className="flex items-center gap-2 text-sm text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={row.disqualified}
+                    onChange={(e) =>
+                      setRows(
+                        updateRows(
+                          rows,
+                          index,
+                          "disqualified",
+                          e.target.checked
+                        )
+                      )
+                    }
+                  />
+                  DQ
+                </label>
+              </div>
+            ))}
+          </div>
+
+          {/* BUTTONS */}
+          <div className="flex gap-2">
+            <button
+              onClick={() =>
+                setRows([
+                  ...rows,
+                  { teamId: "", driverId: "", disqualified: false }
+                ])
+              }
+              className="rounded-lg border border-white/10 px-4 py-2"
+            >
+              Add Row
+            </button>
+
+            <button
+              disabled={!matchId}
+              onClick={submit}
+              className="rounded-lg bg-neonBlue px-4 py-2 font-bold text-black disabled:opacity-40"
+            >
+              Submit Results
+            </button>
+          </div>
+        </div>
+      </Panel>
+    </>
   );
 }
 
@@ -889,19 +1032,160 @@ function PenaltyEntry({ teams, drivers, matches, onDone }) {
   );
 }
 
-function PovEntry({ matches, drivers, onDone }) {
-  const [form, setForm] = useState({ matchId: "", driverId: "", url: "" });
-  const submit = async () => {
-    await api.post(`/admin/matches/${form.matchId}/povs`, { driverId: form.driverId, url: form.url });
-    await onDone();
+function PovEntry({ onDone }) {
+  const [data, setData] = useState([]);
+  const [day, setDay] = useState("all");
+  const [status, setStatus] = useState("all");
+  const [loading, setLoading] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const query = new URLSearchParams();
+      if (day !== "all") query.append("day", day);
+      if (status !== "all") query.append("status", status);
+
+      const res = await api.get(`/admin/povs?${query.toString()}`);
+      setData(res.data);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    load();
+  }, [day, status]);
+
+  const update = async (matchId, povId, payload) => {
+    await api.patch(`/admin/povs/${matchId}/${povId}`, payload);
+    await load();
+    onDone();
+  };
+
   return (
-    <Panel title="POV Upload Links" action={<Link className="h-5 w-5 text-neonBlue" />}>
-      <div className="grid gap-2 md:grid-cols-[1fr_1fr_2fr_auto]">
-        <select value={form.matchId} onChange={(e) => setForm({ ...form, matchId: e.target.value })} className="px-3 py-2"><option value="">Match</option>{matches.map((match) => <option key={match._id} value={match._id}>Day {match.day} {raceName(match.type)}</option>)}</select>
-        <select value={form.driverId} onChange={(e) => setForm({ ...form, driverId: e.target.value })} className="px-3 py-2"><option value="">Driver</option>{drivers.map((driver) => <option key={driver._id} value={driver._id}>{driver.alias}</option>)}</select>
-        <input value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} className="px-3 py-2" placeholder="POV URL" />
-        <button onClick={submit} className="rounded-lg bg-neonPurple px-4 py-2 font-bold text-white">Attach</button>
+    <Panel title="POV Review System">
+
+      {/* 🔥 FILTERS */}
+      <div className="flex gap-2 mb-4 flex-wrap">
+
+        {/* DAY FILTER */}
+        <select
+          value={day}
+          onChange={(e) => setDay(e.target.value)}
+          className="px-3 py-2"
+        >
+          <option value="all">All Days</option>
+          {[1,2,3,4,5,6,7].map(d => (
+            <option key={d} value={d}>Day {d}</option>
+          ))}
+        </select>
+
+        {/* STATUS FILTER */}
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          className="px-3 py-2"
+        >
+          <option value="all">All Status</option>
+          <option value="Pending">Pending</option>
+          <option value="Approved">Approved</option>
+          <option value="Rejected">Rejected</option>
+        </select>
+
+        <button
+          onClick={load}
+          className="px-4 py-2 border border-white/20 rounded"
+        >
+          Refresh
+        </button>
+      </div>
+
+      {/* 🧠 DATA */}
+      <div className="space-y-6">
+
+        {loading && <p className="text-slate-400">Loading POVs...</p>}
+
+        {!loading && data.length === 0 && (
+          <p className="text-slate-400">No POVs found</p>
+        )}
+
+        {data.map(match => (
+          <div key={match.matchId} className="space-y-3">
+
+            {/* MATCH HEADER */}
+            <div className="text-sm text-slate-400">
+              Day {match.day} • {match.type}
+            </div>
+
+            {/* POV CARDS */}
+            {match.povs.map(pov => (
+              <div
+                key={pov._id}
+                className="border border-white/10 rounded-lg p-4 flex justify-between items-center"
+              >
+
+                {/* LEFT */}
+                <div>
+                  <p className="font-bold">{pov.driverName}</p>
+                  <p className="text-xs text-slate-400">{pov.teamName}</p>
+
+                  <a
+                    href={pov.url}
+                    target="_blank"
+                    className="text-neonBlue text-xs"
+                  >
+                    View POV
+                  </a>
+                </div>
+
+                {/* RIGHT */}
+                <div className="flex items-center gap-2">
+
+                  <Badge tone={
+                    pov.status === "Approved"
+                      ? "green"
+                      : pov.status === "Rejected"
+                      ? "red"
+                      : "yellow"
+                  }>
+                    {pov.status}
+                  </Badge>
+
+                  {/* APPROVE */}
+                  <button
+                    onClick={() =>
+                      update(match.matchId, pov._id, { status: "Approved" })
+                    }
+                    className="px-3 py-1 bg-emerald-400 text-black rounded"
+                  >
+                    ✓
+                  </button>
+
+                  {/* REJECT */}
+                  <button
+                    onClick={() =>
+                      update(match.matchId, pov._id, { status: "Rejected" })
+                    }
+                    className="px-3 py-1 bg-red-400 text-black rounded"
+                  >
+                    ✕
+                  </button>
+
+                  {/* PENALTY */}
+                  <button
+                    onClick={() =>
+                      update(match.matchId, pov._id, { penalty: true })
+                    }
+                    className="px-3 py-1 bg-yellow-400 text-black rounded"
+                  >
+                    ⚠
+                  </button>
+
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
       </div>
     </Panel>
   );
