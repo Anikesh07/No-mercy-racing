@@ -4,7 +4,6 @@ import {
   Users,
   Flag,
   AlertTriangle,
-  Swords,
   Ban,
   Repeat,
   Video,
@@ -20,177 +19,178 @@ const sections = [
       "Event runs for 7 consecutive days",
       "Minimum 5 teams required",
       "Each team must have 4 Main, 1 Reserve, and 1 female racer",
-      "Admin approval required before participation",
-      "Participation = acceptance of rules"
+      "Management approval required before participation",
+      "Participation = acceptance of all rules"
     ]
   },
+
   {
-    title: "Entry & Match Rules",
+    title: "Entry Rules",
     icon: <Trophy className="text-yellow-400" />,
     items: [
       "Entry Fee: $25,000",
-      "Rivalry Clash: $10,000 per team",
-      "Winner takes full amount",
-      "No refunds allowed"
+      "No refunds allowed after registration",
+      "Teams must confirm participation before start"
     ]
   },
+
   {
     title: "Daily Match Format",
     icon: <Users className="text-neonBlue" />,
     items: [
-      "Grand Prix (Team race)",
-      "Duo Clash (2 players)",
-      "Solo Showdown (mandatory)",
-      "Optional Rivalry Clash"
+      "Grand Prix (All 4 main drivers)",
+      "Duo Clash (2 Drivers each team)",
+      "Solo Showdown (1 Driver each team)",
+      "All formats contribute to total points"
     ]
   },
+
+  // 🔥 YOUR NEW STRATEGY RULE (IMPORTANT)
   {
-    title: "Participation Rules",
-    icon: <ShieldCheck className="text-green-400" />,
+    title: "Race Participation Strategy",
+    icon: <Users className="text-yellow-400" />,
+    highlight: true,
     items: [
-      "All teams must play daily",
-      "Top GP players cannot play Duo/Solo",
-      "Top Duo players cannot play Solo",
-      "Duo players cannot play Solo",
-      "Proper player rotation required"
+      "Top Grand Prix racers are not allowed to participate in Duo or Solo races",
+      "Drivers participating in Duo Clash cannot participate in Solo Showdown",
+      "Each driver can participate in only 1 or 2 races per day",
+      "At least one driver must play only one race",
+      "Remaining drivers must cover two races",
+      "Teams must plan strategy carefully for maximum performance"
     ]
   },
-  {
-    title: "Dominance Rule",
-    icon: <AlertTriangle className="text-orange-400" />,
-    items: [
-      "If all 4 racers finish Top 5:",
-      "Reserve must play Duo & Solo",
-      "Bottom 2 must play Duo & Solo",
-      "Top racers restricted"
-    ]
-  },
-  {
-    title: "Rivalry Clash",
-    icon: <Swords className="text-red-400" />,
-    items: [
-      "Only adjacent teams can be challenged",
-      "Each team has 1 defensive pass",
-      "After pass → refusal = penalty",
-      "Accepted matches cannot be cancelled"
-    ]
-  },
-  {
-    title: "Grid & Start Rules",
-    icon: <Flag className="text-cyan-400" />,
-    items: [
-      "2-line grid system",
-      "Day 1: random grid",
-      "Day 2+: reverse ranking",
-      "No jump start allowed",
-      "Maintain lane discipline"
-    ]
-  },
+  // 🔥 MOST IMPORTANT FIRST
   {
     title: "Dirty Driving (STRICT)",
     icon: <Ban className="text-red-500" />,
     highlight: true,
     items: [
       "No ramming, PIT, blocking, brake-checking",
-      "Minor → Warning",
-      "Moderate → Position penalty",
-      "Major → Disqualification",
-      "Severe → Disqualification + action",
-      "Repeat → Ban or removal"
+      "Minor violation → Warning",
+      "Moderate violation → Position penalty",
+      "Major violation → Disqualification",
+      "Severe violation → Disqualification + disciplinary action",
+      "Repeated violations → Ban or removal"
     ]
   },
+
+  {
+    title: "Grid & Start Rules",
+    icon: <Flag className="text-cyan-400" />,
+    items: [
+      "2-line grid system",
+      "Day 1: random grid",
+      "Day 2+: reverse ranking order",
+      "No jump start allowed",
+      "Lane discipline must be maintained"
+    ]
+  },
+
   {
     title: "Disconnect Rule",
     icon: <Repeat className="text-purple-400" />,
     items: [
       "Disconnect = last position",
-      "No rejoin advantage",
-      "Repeated disconnect = penalty"
+      "No rejoin advantage allowed",
+      "Repeated disconnects may lead to penalties"
     ]
   },
+
   {
     title: "Refusal to Play",
     icon: <Ban className="text-red-400" />,
     highlight: true,
     items: [
-      "Skipping races is not allowed",
+      "Skipping races is strictly not allowed",
       "Penalty: $300,000 – $500,000",
-      "Additional disciplinary action"
+      "Additional disciplinary action may apply"
     ]
   },
+
   {
     title: "Wrong Participation",
     icon: <AlertTriangle className="text-yellow-400" />,
     items: [
-      "Invalid player = result not counted",
-      "Repeat violation = penalties"
+      "Invalid player participation = result not counted",
+      "Repeated violations lead to penalties"
     ]
   },
+
   {
     title: "Player Swap Rule",
     icon: <Repeat className="text-blue-400" />,
     items: [
-      "Max 2 swaps per team",
-      "Declare before race",
-      "No mid-race swaps"
+      "Maximum 2 swaps per team",
+      "Must be declared before race",
+      "No mid-race swaps allowed"
     ]
   },
+
   {
     title: "POV Submission",
     icon: <Video className="text-neonBlue" />,
     items: [
       "Top players must submit POV within 24 hours",
-      "Failure → admin action"
+      "Failure to submit may result in admin action"
     ]
   },
+
   {
     title: "Tie-Breaker",
     icon: <Trophy className="text-yellow-300" />,
     items: [
       "Each team selects best driver",
       "1v1 race on hardest track",
-      "Winner decides ranking"
+      "Winner determines final ranking"
     ]
   },
+
   {
     title: "Admin Authority",
     icon: <Crown className="text-purple-400" />,
     items: [
-      "Admin enforces rules",
-      "Handles disputes",
-      "All decisions are final"
+      "Admin enforces all rules",
+      "Handles disputes and decisions",
+      "All admin decisions are final"
     ]
   },
+
   {
     title: "Final Statement",
     icon: <ShieldCheck className="text-green-300" />,
     items: [
       "Play fair",
-      "Follow rules",
+      "Follow all rules",
       "Respect decisions",
-      "League rewards discipline & teamwork"
+      "League rewards discipline and teamwork"
     ]
   }
 ];
 
 export default function Rules() {
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
-      <div className="mb-8">
+    <div className="mx-auto max-w-7xl px-4 py-10 space-y-8">
+
+      {/* HEADER */}
+      <div>
         <p className="text-xs font-bold uppercase tracking-[0.3em] text-neonBlue">
           Regulations
         </p>
-        <h2 className="mt-2 text-3xl font-black">Rules</h2>
+        <h2 className="mt-2 text-4xl font-black">Rules</h2>
+        <p className="text-slate-400 mt-2">
+          Read carefully. Ignorance won’t save you mid-race.
+        </p>
       </div>
 
+      {/* RULES GRID */}
       <Panel title="Official League Rules">
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {sections.map((section) => (
             <div
               key={section.title}
               className={`rounded-xl border p-5 transition ${
                 section.highlight
-                  ? "border-red-400/40 bg-red-500/10"
+                  ? "border-yellow-400/60 bg-yellow-500/10 shadow-lg shadow-yellow-500/10"
                   : "border-white/10 bg-white/[0.03]"
               } hover:scale-[1.02] hover:border-neonPink/40`}
             >
@@ -211,6 +211,7 @@ export default function Rules() {
           ))}
         </div>
       </Panel>
+
     </div>
   );
 }

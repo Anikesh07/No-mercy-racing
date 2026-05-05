@@ -19,10 +19,10 @@ export default function LeaderboardsPage() {
       setError(null);
 
       const res = await api.get("/leaderboards");
-      setLeaderboards(res.data);
+      setLeaderboards(res.data || { teams: [], drivers: [] });
       setLastUpdated(new Date());
-
-    } catch {
+    } catch (err) {
+      console.error(err);
       setError("Failed to load leaderboard data");
     } finally {
       setLoading(false);
@@ -77,7 +77,7 @@ export default function LeaderboardsPage() {
       </section>
 
       {/* ================= TOP SECTION ================= */}
-      {!loading && !error && (
+      {!loading && !error && (topTeam || topDriver) && (
         <section className="grid md:grid-cols-2 gap-6">
 
           {/* 👑 TOP TEAM */}
@@ -94,7 +94,7 @@ export default function LeaderboardsPage() {
               </h3>
 
               <p className="text-slate-400 text-sm mt-2">
-                {topTeam.points} pts • {topTeam.leaderName}
+                {topTeam.points} pts • {topTeam.leaderName || "No leader"}
               </p>
             </div>
           )}
@@ -113,7 +113,7 @@ export default function LeaderboardsPage() {
               </h3>
 
               <p className="text-slate-400 text-sm mt-2">
-                {topDriver.ratingPoints} rating • {topDriver.teamId?.crewName}
+                {topDriver.ratingPoints} rating • {topDriver.teamId?.crewName || "No Team"}
               </p>
             </div>
           )}
@@ -137,8 +137,15 @@ export default function LeaderboardsPage() {
         </div>
       )}
 
+      {/* ================= EMPTY STATE ================= */}
+      {!loading && !error && !leaderboards.teams?.length && !leaderboards.drivers?.length && (
+        <div className="text-center text-slate-500 py-10">
+          No leaderboard data available yet.
+        </div>
+      )}
+
       {/* ================= TABLE ================= */}
-      {!loading && !error && (
+      {!loading && !error && (leaderboards.teams?.length || leaderboards.drivers?.length) && (
         <section>
           <Leaderboards data={leaderboards} />
         </section>

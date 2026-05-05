@@ -1,4 +1,5 @@
 import express from "express";
+import mongoose from "mongoose";
 import AdminMessage from "../models/AdminMessage.js";
 import Driver from "../models/Driver.js";
 import Match from "../models/Match.js";
@@ -91,8 +92,9 @@ router.patch("/teams/:id/status", async (req, res) => {
 
     res.json(team);
   } catch (err) {
-    res.status(500).json({ message: "Failed to update status" });
-  }
+  console.error(err);
+  alert(err.response?.data?.message || "Failed to update status");
+}
 });
 
 router.get("/chat", async (_req, res) => {
@@ -588,5 +590,90 @@ router.patch("/povs/:matchId/:povId", async (req, res) => {
   }
 });
 
+
+router.patch("/drivers/:id/status", async (req, res) => {
+  try {
+    const { status, reason = "" } = req.body;
+
+    const allowedStatuses = [
+      "Eligible",
+      "Restricted",
+      "Disqualified",
+      "Banned",
+      "Penalized"
+    ];
+
+    // ✅ Validate status
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
+
+    // ✅ Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "Invalid driver ID" });
+    }
+
+    // 🔍 Get driver
+    const driver = await Driver.findById(req.params.id);
+
+    if (!driver) {
+      return res.status(404).json({ message: "Driver not found" });
+    }
+
+    // ❌ Prevent useless update
+    if (driver.status === status) {
+      return res.status(400).json({ message: `Driver already ${status}` });
+    }
+
+    // 🔥 STATUS LOGIC
+    let pointsDelta = 0;
+
+    if (status === "Penalized") {
+      pointsDelta = -5;
+    }
+
+    if (status === "Disqualified") {
+      pointsDelta = -10;
+    }
+
+    if (status === "Banned") {
+      pointsDelta = -20;
+    }
+
+    // 🔥 Apply penalty if needed
+    if (pointsDelta !== 0 && driver.teamId) {
+  const teamId = typeof driver.teamId === "object"
+    ? driver.teamId._id
+    : driver.teamId;
+
+  await Team.findByIdAndUpdate(teamId, {
+    $inc: { points: pointsDelta }
+  });
+
+  await Penalty.create({
+    teamId,
+    driverId: driver._id,
+    type: status,
+    pointsDelta,
+    reason: reason || `Auto penalty: ${status}`
+  });
+}
+
+    // 🔄 Update driver
+    driver.status = status;
+driver.markModified("status");
+await driver.save();
+
+    // ✅ Response
+    res.json({
+      message: `Driver ${driver.alias} marked as ${status}`,
+      driver
+    });
+
+  } catch (err) {
+  console.error("🔥 DRIVER STATUS ERROR:", err);
+  res.status(500).json({ message: err.message });
+}
+});
 
 export default router;

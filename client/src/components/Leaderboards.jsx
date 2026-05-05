@@ -8,7 +8,6 @@ export default function Leaderboards({ data }) {
   const [teamPage, setTeamPage] = useState(1);
   const [driverPage, setDriverPage] = useState(1);
 
-  // 🔥 paginate helper
   const paginate = (items, page) => {
     const start = (page - 1) * ITEMS_PER_PAGE;
     return items.slice(start, start + ITEMS_PER_PAGE);
@@ -23,7 +22,7 @@ export default function Leaderboards({ data }) {
       {/* ================= TEAM LEADERBOARD ================= */}
       <Panel title="🏁 Team Leaderboard">
         <div className="w-full overflow-hidden">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-auto">
 
             <thead className="text-xs uppercase text-slate-400 border-b border-white/10">
               <tr>
@@ -34,22 +33,28 @@ export default function Leaderboards({ data }) {
                 <th className="text-center hidden sm:table-cell">GP</th>
                 <th className="text-center hidden sm:table-cell">Duo</th>
                 <th className="text-center hidden md:table-cell">Solo</th>
-                <th className="text-center hidden md:table-cell">Rival</th>
 
                 <th className="text-right">Pts</th>
               </tr>
             </thead>
 
             <tbody>
+              {!data.teams?.length && (
+                <tr>
+                  <td colSpan="6" className="text-center py-6 text-slate-500">
+                    No teams available
+                  </td>
+                </tr>
+              )}
+
               {paginate(data.teams || [], teamPage).map((team) => (
                 <tr
                   key={team._id}
                   className={`
-                    border-b border-white/5 transition
-                    hover:bg-white/5
-                    ${team.rank === 1 && "bg-neonPink/5"}
-                    ${team.rank === 2 && "bg-white/[0.03]"}
-                    ${team.rank === 3 && "bg-yellow-500/5"}
+                    border-b border-white/5 transition hover:bg-white/5
+                    ${team.rank === 1 && "bg-neonPink/10 border-l-4 border-neonPink"}
+                    ${team.rank === 2 && "bg-white/[0.05] border-l-4 border-white/30"}
+                    ${team.rank === 3 && "bg-yellow-500/10 border-l-4 border-yellow-400"}
                   `}
                 >
                   <td className="py-3">
@@ -78,10 +83,6 @@ export default function Leaderboards({ data }) {
                     {team.breakdown?.solo || 0}
                   </td>
 
-                  <td className="text-center hidden md:table-cell">
-                    {team.breakdown?.rivalry || 0}
-                  </td>
-
                   <td className="text-right font-bold text-neonBlue">
                     {team.points}
                   </td>
@@ -91,7 +92,6 @@ export default function Leaderboards({ data }) {
 
           </table>
 
-          {/* 🔽 TEAM PAGINATION */}
           <Pagination
             current={teamPage}
             total={totalPages(data.teams)}
@@ -103,7 +103,7 @@ export default function Leaderboards({ data }) {
       {/* ================= DRIVER LEADERBOARD ================= */}
       <Panel title="🔥 Top Drivers Rating">
         <div className="w-full overflow-hidden">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-auto">
 
             <thead className="text-xs uppercase text-slate-400 border-b border-white/10">
               <tr>
@@ -122,15 +122,22 @@ export default function Leaderboards({ data }) {
             </thead>
 
             <tbody>
+              {!data.drivers?.length && (
+                <tr>
+                  <td colSpan="8" className="text-center py-6 text-slate-500">
+                    No drivers available
+                  </td>
+                </tr>
+              )}
+
               {paginate(data.drivers || [], driverPage).map((driver) => (
                 <tr
                   key={driver._id}
                   className={`
-                    border-b border-white/5 transition
-                    hover:bg-white/5
-                    ${driver.rank === 1 && "bg-yellow-500/5"}
-                    ${driver.rank === 2 && "bg-white/[0.03]"}
-                    ${driver.rank === 3 && "bg-orange-500/5"}
+                    border-b border-white/5 transition hover:bg-white/5
+                    ${driver.rank === 1 && "bg-yellow-500/10 border-l-4 border-yellow-400"}
+                    ${driver.rank === 2 && "bg-white/[0.05] border-l-4 border-white/30"}
+                    ${driver.rank === 3 && "bg-orange-500/10 border-l-4 border-orange-400"}
                   `}
                 >
                   <td className="py-3">
@@ -176,7 +183,6 @@ export default function Leaderboards({ data }) {
 
           </table>
 
-          {/* 🔽 DRIVER PAGINATION */}
           <Pagination
             current={driverPage}
             total={totalPages(data.drivers)}
@@ -189,15 +195,14 @@ export default function Leaderboards({ data }) {
   );
 }
 
-
 /* ================= PAGINATION ================= */
 function Pagination({ current, total, setPage }) {
   if (total <= 1) return null;
 
   return (
-    <div className="flex justify-center gap-2 mt-4">
+    <div className="flex justify-center gap-2 mt-4 flex-wrap">
 
-      {Array.from({ length: total }).map((_, i) => {
+      {Array.from({ length: total }).slice(0, 5).map((_, i) => {
         const page = i + 1;
 
         return (

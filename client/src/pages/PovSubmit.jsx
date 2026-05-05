@@ -7,12 +7,15 @@ export default function PovSubmit() {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  // 🔥 NEW POPUP STATE
+  const [popup, setPopup] = useState(null);
+
   const [form, setForm] = useState({
     matchId: "",
     teamId: "",
     driverName: "",
     raceType: "Team",
-    raceDate: "", // ✅ NOW ACTUALLY USED
+    raceDate: "",
     url: ""
   });
 
@@ -30,14 +33,19 @@ export default function PovSubmit() {
         !form.url ||
         !form.raceDate
       ) {
-        return alert("Fill all fields");
+        setPopup({ type: "error", message: "Fill all fields" });
+        return;
       }
 
       setLoading(true);
 
       await api.post("/pov/submit", form);
 
-      alert("POV submitted successfully");
+      // ✅ SUCCESS POPUP
+      setPopup({ type: "success", message: "POV submitted successfully" });
+
+      // auto close after 2 sec
+      setTimeout(() => setPopup(null), 2000);
 
       setForm({
         matchId: "",
@@ -49,7 +57,10 @@ export default function PovSubmit() {
       });
 
     } catch (err) {
-      alert(err?.response?.data?.message || "Submission failed");
+      setPopup({
+        type: "error",
+        message: err?.response?.data?.message || "Submission failed"
+      });
     } finally {
       setLoading(false);
     }
@@ -57,7 +68,32 @@ export default function PovSubmit() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      
+
+      {/* 🔥 POPUP */}
+      {popup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="rounded-xl border border-white/10 bg-[#0b0b12] p-6 w-[90%] max-w-sm text-center shadow-xl">
+
+            <p
+              className={`text-lg font-semibold ${
+                popup.type === "success"
+                  ? "text-green-400"
+                  : "text-red-400"
+              }`}
+            >
+              {popup.message}
+            </p>
+
+            <button
+              onClick={() => setPopup(null)}
+              className="mt-4 w-full rounded-lg bg-neonPink py-2 font-bold text-black"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* HEADER */}
       <div className="mb-8 text-center">
         <h2 className="text-4xl font-black tracking-tight">
@@ -68,7 +104,7 @@ export default function PovSubmit() {
         </p>
       </div>
 
-      {/* GLASS CARD */}
+      {/* FORM */}
       <div className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-6 space-y-5 shadow-xl">
 
         {/* MATCH */}
@@ -133,7 +169,6 @@ export default function PovSubmit() {
             <option value="Team">Grand Prix</option>
             <option value="Duo">Duo Clash</option>
             <option value="Solo">Solo Showdown</option>
-            <option value="Rivalry">Rivalry Clash</option>
           </select>
         </Field>
 
