@@ -71,7 +71,7 @@ export default function Fixtures() {
       <Panel title="7-Day Match Schedule">
         {/* Day filter */}
         <div className="flex flex-wrap gap-2 mb-4">
-          {["all", "1", "2", "3", "4", "5", "6", "7"].map((day) => (
+          {["all", ...Array.from(new Set([...visibleFixtures.map(m => m.day), 1, 2, 3, 4, 5, 6, 7])).sort((a, b) => a - b).map(String)].map((day) => (
             <button
               key={day}
               onClick={() => setDayFilter(day)}

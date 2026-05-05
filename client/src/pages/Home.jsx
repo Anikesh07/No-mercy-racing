@@ -40,7 +40,7 @@ export default function Home() {
     </p>
 
     <h1 className="text-5xl font-black mt-2 bg-gradient-to-r from-white via-neonPink to-purple-400 bg-clip-text text-transparent">
-      NO MERCY RACING LEAGUE
+      NO MERCY 1.0
     </h1>
 
     <p className="mt-4 text-slate-300 max-w-xl">

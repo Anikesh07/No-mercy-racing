@@ -17,6 +17,21 @@ router.use((req, res, next) => {
   if (!req.admin) {
     return res.status(401).json({ message: "Unauthorized admin access" });
   }
+
+  // 🔒 STRICT STAFF RESTRICTION
+  if (req.admin.role === "staff") {
+    // Only allow safe GET endpoints
+    const isAllowed = req.method === "GET" && (
+      req.path === "/dashboard" ||
+      req.path === "/povs" ||
+      req.path === "/chat"
+    );
+
+    if (!isAllowed) {
+      return res.status(403).json({ message: "Staff are only permitted to view POVs and Dashboard" });
+    }
+  }
+
   next();
 });
 
@@ -46,16 +61,18 @@ function cleanTeamIds(teamIds) {
 router.get("/dashboard", async (_req, res) => {
   try {
     const [teams, drivers, matches, penalties] = await Promise.all([
-      Team.find().sort({ createdAt: -1 }),
-      Driver.find().populate("teamId", "crewName").sort({ alias: 1 }),
+      Team.find().sort({ createdAt: -1 }).lean(),
+      Driver.find().populate("teamId", "crewName").sort({ alias: 1 }).lean(),
       Match.find()
         .populate("teams", "crewName")
         .populate("participants.driverIds", "alias status role")
-        .sort({ raceDate: 1, raceTime: 1, day: 1, slot: 1 }),
+        .sort({ raceDate: 1, raceTime: 1, day: 1, slot: 1 })
+        .lean(),
       Penalty.find()
         .populate("teamId", "crewName")
         .populate("driverId", "alias")
         .sort({ createdAt: -1 })
+        .lean()
     ]);
 
     res.json({ teams, drivers, matches, penalties });
@@ -531,7 +548,8 @@ router.get("/povs", async (req, res) => {
 
     const matches = await Match.find()
       .populate("povs.teamId", "crewName")
-      .sort({ day: 1 });
+      .sort({ day: 1 })
+      .lean();
 
     const formatted = matches
       .filter(m => !day || m.day == day)

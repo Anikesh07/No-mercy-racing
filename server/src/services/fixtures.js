@@ -2,6 +2,25 @@ import Driver from "../models/Driver.js";
 import Match from "../models/Match.js";
 import Team from "../models/Team.js";
 
+const RACE_TRACKS = [
+  "Vinwood toug",
+  "Shadow Line",
+  "Reverse Track",
+  "Focus Death Trip",
+  "City Sprint",
+  "BBD Breeze",
+  "East Side Oilers",
+  "Hotlap Incident",
+  "East Side GP",
+  "Blackout",
+  "Sandy Circuit",
+  "Starway Drive"
+];
+
+function getRandomTrack() {
+  return RACE_TRACKS[Math.floor(Math.random() * RACE_TRACKS.length)];
+}
+
 function spreadAcrossSevenDays(index, total) {
   if (total <= 7) return index + 1;
   return Math.floor((index * 7) / total) + 1;
@@ -14,6 +33,32 @@ function shuffleList(items) {
     [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
   }
   return shuffled;
+}
+
+function generateRoundRobinSchedule(teams) {
+  const t = [...teams];
+  if (t.length % 2 !== 0) {
+    t.push(null);
+  }
+  
+  const numRounds = t.length - 1;
+  const half = t.length / 2;
+  const rounds = [];
+  
+  for (let round = 0; round < numRounds; round++) {
+    const roundMatches = [];
+    for (let i = 0; i < half; i++) {
+      const home = t[i];
+      const away = t[t.length - 1 - i];
+      if (home !== null && away !== null) {
+        roundMatches.push([home, away]);
+      }
+    }
+    rounds.push(roundMatches);
+    t.splice(1, 0, t.pop());
+  }
+  
+  return rounds;
 }
 
 function dateForDay(startDate, day) {
@@ -104,6 +149,7 @@ export async function generateFixtures() {
       day,
       slot: 1,
       type: "Team",
+      trackName: getRandomTrack(),
       teams: teams.map((team) => team._id),
       participants: teamParticipants
     });
@@ -112,29 +158,29 @@ export async function generateFixtures() {
       day,
       slot: 2,
       type: "Duo",
+      trackName: getRandomTrack(),
       teams: teams.map((team) => team._id),
       participants: duoParticipants
     });
   }
 
-  const soloPairs = [];
-  for (let i = 0; i < teams.length; i += 1) {
-    for (let j = i + 1; j < teams.length; j += 1) {
-      soloPairs.push([teams[i], teams[j]]);
-    }
-  }
+  const soloRounds = generateRoundRobinSchedule(teams);
+  const dailySlots = { 2: 3, 3: 3, 4: 3, 5: 3, 6: 3, 7: 3 };
 
-  soloPairs.forEach(([home, away], index) => {
-    const day = spreadAcrossSevenDays(index, soloPairs.length);
-    matches.push({
-      day,
-      slot: 3 + index,
-      type: "Solo",
-      teams: [home._id, away._id],
-      participants: [
-        { teamId: home._id, driverIds: [] },
-        { teamId: away._id, driverIds: [] }
-      ]
+  soloRounds.forEach((roundMatches, roundIndex) => {
+    const day = 2 + (roundIndex % 6);
+    roundMatches.forEach(([home, away]) => {
+      matches.push({
+        day,
+        slot: dailySlots[day]++,
+        type: "Solo",
+        trackName: getRandomTrack(),
+        teams: [home._id, away._id],
+        participants: [
+          { teamId: home._id, driverIds: [] },
+          { teamId: away._id, driverIds: [] }
+        ]
+      });
     });
   });
 
@@ -158,6 +204,7 @@ export async function generateCustomFixtures({ teamCount, startDate, shuffle = t
       raceDate,
       slot: 1,
       type: "Team",
+      trackName: getRandomTrack(),
       teams: teams.map((team) => team._id),
       participants: await participantsForTeams(teams, "Team")
     });
@@ -167,31 +214,31 @@ export async function generateCustomFixtures({ teamCount, startDate, shuffle = t
       raceDate,
       slot: 2,
       type: "Duo",
+      trackName: getRandomTrack(),
       teams: teams.map((team) => team._id),
       participants: await participantsForTeams(teams, "Duo")
     });
   }
 
-  const soloPairs = [];
-  for (let first = 0; first < teams.length; first += 1) {
-    for (let second = first + 1; second < teams.length; second += 1) {
-      soloPairs.push([teams[first], teams[second]]);
-    }
-  }
+  const soloRounds = generateRoundRobinSchedule(teams);
+  const shuffledRounds = shuffle ? shuffleList(soloRounds) : soloRounds;
+  const dailySlots = { 2: 3, 3: 3, 4: 3, 5: 3, 6: 3, 7: 3 };
 
-  const soloSchedule = shuffle ? shuffleList(soloPairs) : soloPairs;
-  soloSchedule.forEach(([home, away], index) => {
-    const day = 2 + (index % 6);
-    matches.push({
-      day,
-      raceDate: dateForDay(startDate, day),
-      slot: 3 + Math.floor(index / 6),
-      type: "Solo",
-      teams: [home._id, away._id],
-      participants: [
-        { teamId: home._id, driverIds: [] },
-        { teamId: away._id, driverIds: [] }
-      ]
+  shuffledRounds.forEach((roundMatches, roundIndex) => {
+    const day = 2 + (roundIndex % 6);
+    roundMatches.forEach(([home, away]) => {
+      matches.push({
+        day,
+        raceDate: dateForDay(startDate, day),
+        slot: dailySlots[day]++,
+        type: "Solo",
+        trackName: getRandomTrack(),
+        teams: [home._id, away._id],
+        participants: [
+          { teamId: home._id, driverIds: [] },
+          { teamId: away._id, driverIds: [] }
+        ]
+      });
     });
   });
 

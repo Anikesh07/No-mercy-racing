@@ -20,6 +20,7 @@ import {
 import { api } from "../api.js";
 import Badge from "../components/Badge.jsx";
 import Panel from "../components/Panel.jsx";
+import { Eligibility } from "../components/admin/Eligibility.jsx";
 
 const raceNames = {
   Team: "Grand Prix",
@@ -35,16 +36,21 @@ const raceStyles = {
   Rivalry: "border-red-400/40 bg-red-400/15 text-red-300"
 };
 
-const dayFilters = [
-  { id: "all", label: "All" },
-  { id: "1", label: "Day 1" },
-  { id: "2", label: "Day 2" },
-  { id: "3", label: "Day 3" },
-  { id: "4", label: "Day 4" },
-  { id: "5", label: "Day 5" },
-  { id: "6", label: "Day 6" },
-  { id: "7", label: "Day 7" }
+const RACE_TRACKS = [
+  "Vinwood toug",
+  "Shadow Line",
+  "Reverse Track",
+  "Focus Death Trip",
+  "City Sprint",
+  "BBD Breeze",
+  "East Side Oilers",
+  "Hotlap Incident",
+  "East Side GP",
+  "Blackout",
+  "Sandy Circuit",
+  "Starway Drive"
 ];
+
 
 const adminSections = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -90,6 +96,7 @@ function teamIdsFromMatch(match) {
 
 export default function Admin() {
   const [token, setToken] = useState(localStorage.getItem("nmrl_token") || "");
+  const [role, setRole] = useState(localStorage.getItem("nmrl_role") || "admin");
   const [login, setLogin] = useState({ username: "", password: "" });
   const [dashboard, setDashboard] = useState({ teams: [], drivers: [], matches: [], penalties: [] });
   const [fixtureForm, setFixtureForm] = useState({ teamCount: 8, startDate: "", shuffle: true });
@@ -115,8 +122,13 @@ export default function Admin() {
     try {
       const res = await api.post("/auth/login", login);
       localStorage.setItem("nmrl_token", res.data.token);
+      localStorage.setItem("nmrl_role", res.data.role);
       setToken(res.data.token);
+      setRole(res.data.role);
       setMessage("Admin session active.");
+      if (res.data.role === "staff") {
+        setActiveSection("povs");
+      }
     } catch (error) {
       setMessage(error.response?.data?.message || "Login failed.");
     }
@@ -192,7 +204,7 @@ setEditingTeam(null);
           <button onClick={load} className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2 hover:bg-white/10">
             <RefreshCcw className="h-4 w-4" /> Refresh
           </button>
-          <button onClick={() => { localStorage.removeItem("nmrl_token"); setToken(""); }} className="rounded-lg border border-red-400/40 px-4 py-2 text-red-300">Logout</button>
+          <button onClick={() => { localStorage.removeItem("nmrl_token"); localStorage.removeItem("nmrl_role"); setToken(""); }} className="rounded-lg border border-red-400/40 px-4 py-2 text-red-300">Logout</button>
         </div>
       </div>
 
@@ -200,7 +212,7 @@ setEditingTeam(null);
 
       <nav className="mb-5 rounded-lg border border-white/10 bg-white/[0.03] p-2 backdrop-blur-xl">
         <div className="flex flex-wrap gap-2 relative z-10 bg-black/40 p-2 rounded-lg mb-3">
-          {adminSections.map(({ id, label, icon: Icon }) => (
+          {(role === "staff" ? adminSections.filter(s => s.id === "povs") : adminSections).map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               type="button"
@@ -313,6 +325,7 @@ setEditingTeam(null);
           <PovEntry
             matches={dashboard.matches}
             drivers={dashboard.drivers}
+            role={role}
             onDone={load}
           />
         )}
@@ -460,6 +473,13 @@ function SummaryTile({ label, value }) {
 function FixtureManager({ teams, matches, fixtureForm, setFixtureForm, generateFixtures, onDone, onMessage }) {
   const approvedTeams = teams.filter((team) => team.status === "Approved");
   const [dayFilter, setDayFilter] = useState("all");
+  
+  const uniqueDays = Array.from(new Set([...matches.map(m => m.day), 1, 2, 3, 4, 5, 6, 7])).sort((a, b) => a - b);
+  const dynamicDayFilters = [
+    { id: "all", label: "All" },
+    ...uniqueDays.map(d => ({ id: String(d), label: `Day ${d}` }))
+  ];
+
   const filteredMatches = dayFilter === "all" ? matches : matches.filter((match) => String(match.day) === dayFilter);
   const sortedMatches = [...filteredMatches].sort((a, b) => {
     const dateA = a.raceDate || "";
@@ -576,7 +596,7 @@ function FixtureManager({ teams, matches, fixtureForm, setFixtureForm, generateF
       <Panel title="Date Wise Fixture Schedule" action={<Save className="h-5 w-5 text-neonBlue" />}>
   <div className="grid gap-4 mt-6 relative z-0">
           <div className="flex flex-wrap gap-2 relative z-10 bg-black/40 p-2 rounded-lg mb-3">
-            {dayFilters.map((filter) => (
+            {dynamicDayFilters.map((filter) => (
               <button
                 key={filter.id}
                 type="button"
@@ -627,7 +647,10 @@ function FixtureInputs({ form, setForm, teams, includeNotes = false }) {
       </label>
       <label className="grid min-w-0 gap-1 text-sm text-slate-300">
         Track
-        <input value={form.trackName || ""} onChange={(event) => update("trackName", event.target.value)} placeholder="Track name" className="w-full px-3 py-2" />
+        <input list="track-list" value={form.trackName || ""} onChange={(event) => update("trackName", event.target.value)} placeholder="Track name" className="w-full px-3 py-2" />
+        <datalist id="track-list">
+          {RACE_TRACKS.map(track => <option key={track} value={track} />)}
+        </datalist>
       </label>
       <label className="grid min-w-0 gap-1 text-sm text-slate-300">
         Car
@@ -1011,8 +1034,14 @@ function ResultEntry({ matches, drivers, onDone }) {
 function PenaltyEntry({ teams, drivers, matches, onDone }) {
   const [form, setForm] = useState({ teamId: "", driverId: "", matchId: "", type: "Dirty Driving", pointsDelta: -5, restrictionDays: 0, reason: "" });
   const submit = async () => {
-    await api.post("/admin/penalties", form);
-    await onDone();
+    try {
+      await api.post("/admin/penalties", form);
+      alert(`Penalty successfully applied to team/driver!`);
+      await onDone();
+      setForm({ ...form, reason: "", pointsDelta: -5, restrictionDays: 0 }); // Reset form slightly
+    } catch (err) {
+      alert("Failed to apply penalty: " + (err.response?.data?.message || err.message));
+    }
   };
   return (
     <Panel title="Penalty System" action={<Shield className="h-5 w-5 text-red-300" />}>
@@ -1032,7 +1061,7 @@ function PenaltyEntry({ teams, drivers, matches, onDone }) {
   );
 }
 
-function PovEntry({ onDone }) {
+function PovEntry({ role, onDone }) {
   const [data, setData] = useState([]);
   const [day, setDay] = useState("all");
   const [status, setStatus] = useState("all");
@@ -1152,34 +1181,40 @@ function PovEntry({ onDone }) {
                   </Badge>
 
                   {/* APPROVE */}
-                  <button
-                    onClick={() =>
-                      update(match.matchId, pov._id, { status: "Approved" })
-                    }
-                    className="px-3 py-1 bg-emerald-400 text-black rounded"
-                  >
-                    ✓
-                  </button>
+                  {role !== "staff" && (
+                    <button
+                      onClick={() =>
+                        update(match.matchId, pov._id, { status: "Approved" })
+                      }
+                      className="px-3 py-1 bg-emerald-400 text-black rounded"
+                    >
+                      ✓
+                    </button>
+                  )}
 
                   {/* REJECT */}
-                  <button
-                    onClick={() =>
-                      update(match.matchId, pov._id, { status: "Rejected" })
-                    }
-                    className="px-3 py-1 bg-red-400 text-black rounded"
-                  >
-                    ✕
-                  </button>
+                  {role !== "staff" && (
+                    <button
+                      onClick={() =>
+                        update(match.matchId, pov._id, { status: "Rejected" })
+                      }
+                      className="px-3 py-1 bg-red-400 text-black rounded"
+                    >
+                      ✕
+                    </button>
+                  )}
 
                   {/* PENALTY */}
-                  <button
-                    onClick={() =>
-                      update(match.matchId, pov._id, { penalty: true })
-                    }
-                    className="px-3 py-1 bg-yellow-400 text-black rounded"
-                  >
-                    ⚠
-                  </button>
+                  {role !== "staff" && (
+                    <button
+                      onClick={() =>
+                        update(match.matchId, pov._id, { penalty: true })
+                      }
+                      className="px-3 py-1 bg-yellow-400 text-black rounded"
+                    >
+                      ⚠
+                    </button>
+                  )}
 
                 </div>
               </div>
@@ -1191,146 +1226,7 @@ function PovEntry({ onDone }) {
   );
 }
 
-function Eligibility({ drivers, refresh }) {
-  const [loadingId, setLoadingId] = useState(null);
 
-  const updateStatus = async (id, status) => {
-    try {
-      // 🚨 Confirm dangerous actions
-      if (["Banned", "Disqualified"].includes(status)) {
-        const confirm = window.confirm(
-          `Are you sure you want to mark this driver as ${status}?`
-        );
-        if (!confirm) return;
-      }
-
-      setLoadingId(id);
-
-      const res = await api.patch(`/admin/drivers/${id}/status`, {
-        status
-      });
-
-      // ✅ show backend message
-      alert(res.data.message || "Status updated");
-
-      refresh?.();
-    } catch (err) {
-      console.error(err);
-      alert(err.response?.data?.message || "Failed to update status");
-    } finally {
-      setLoadingId(null);
-    }
-  };
-
-  const getTone = (status) => {
-    switch (status) {
-      case "Banned":
-      case "Disqualified":
-        return "red";
-      case "Restricted":
-        return "yellow";
-      case "Penalized":
-        return "orange";
-      default:
-        return "green";
-    }
-  };
-
-  return (
-    <Panel title="Driver Eligibility">
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {drivers.map((driver) => {
-          const isDanger =
-            driver.status === "Banned" ||
-            driver.status === "Disqualified";
-
-          const isLoading = loadingId === driver._id;
-
-          return (
-            <div
-              key={driver._id}
-              className={`p-4 rounded-xl border transition-all
-                ${
-                  isDanger
-                    ? "border-red-500/40 bg-red-500/10"
-                    : driver.status === "Penalized"
-                    ? "border-orange-500/40 bg-orange-500/10"
-                    : "border-white/10 bg-white/[0.03]"
-                }`}
-            >
-              {/* 🔹 HEADER */}
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="font-semibold text-lg">
-                    {driver.alias}
-                  </p>
-                  <p className="text-xs text-slate-400">
-                    {driver.teamId?.crewName} / {driver.role}
-                  </p>
-                </div>
-
-                <Badge tone={getTone(driver.status)}>
-                  {driver.status || "Eligible"}
-                </Badge>
-              </div>
-
-              {/* ⚠ PENALTY MESSAGE */}
-              {driver.status === "Penalized" && (
-                <p className="mt-2 text-xs text-orange-400">
-                  ⚠ Penalty applied (points deducted)
-                </p>
-              )}
-
-              {/* 🔻 ACTION BUTTONS */}
-              <div className="mt-4 flex flex-wrap gap-2">
-
-                <button
-                  disabled={isLoading}
-                  onClick={() => updateStatus(driver._id, "Eligible")}
-                  className="px-3 py-1 rounded bg-green-500/20 text-green-400 text-xs disabled:opacity-40"
-                >
-                  {isLoading ? "..." : "Reset"}
-                </button>
-
-                <button
-                  disabled={isLoading}
-                  onClick={() => updateStatus(driver._id, "Restricted")}
-                  className="px-3 py-1 rounded bg-yellow-500/20 text-yellow-400 text-xs disabled:opacity-40"
-                >
-                  Restrict
-                </button>
-
-                <button
-                  disabled={isLoading}
-                  onClick={() => updateStatus(driver._id, "Penalized")}
-                  className="px-3 py-1 rounded bg-orange-500/20 text-orange-400 text-xs disabled:opacity-40"
-                >
-                  Penalty
-                </button>
-
-                <button
-                  disabled={isLoading}
-                  onClick={() => updateStatus(driver._id, "Disqualified")}
-                  className="px-3 py-1 rounded bg-red-500/20 text-red-400 text-xs disabled:opacity-40"
-                >
-                  DQ
-                </button>
-
-                <button
-                  disabled={isLoading}
-                  onClick={() => updateStatus(driver._id, "Banned")}
-                  className="px-3 py-1 rounded bg-red-600/30 text-red-500 text-xs font-semibold disabled:opacity-40"
-                >
-                  Ban
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </Panel>
-  );
-}
 
 function updateRows(rows, index, key, value) {
   return rows.map((row, rowIndex) => (rowIndex === index ? { ...row, [key]: value } : row));

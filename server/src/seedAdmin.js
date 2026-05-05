@@ -12,7 +12,13 @@ const adminsToSeed = [
   },
   {
     username: process.env.HIDDEN_ADMIN_USERNAME || "Anni",
-    password: process.env.HIDDEN_ADMIN_PASSWORD || "Anni1207"
+    password: process.env.HIDDEN_ADMIN_PASSWORD || "Anni1207",
+    role: "admin"
+  },
+  {
+    username: process.env.STAFF_USERNAME || "HydraLyx",
+    password: process.env.STAFF_PASSWORD || "StaffHydraLyx",
+    role: "staff"
   }
 ];
 
@@ -20,9 +26,10 @@ await mongoose.connect(process.env.MONGO_URI || "mongodb://127.0.0.1:27017/nmrl"
 
 for (const admin of adminsToSeed) {
   const passwordHash = await bcrypt.hash(admin.password, 12);
+  const role = admin.role || "admin";
   await Admin.findOneAndUpdate(
     { username: admin.username },
-    { username: admin.username, passwordHash },
+    { username: admin.username, passwordHash, role },
     { upsert: true, new: true }
   );
   console.log(`Admin seeded: ${admin.username}`);

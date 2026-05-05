@@ -8,6 +8,7 @@ import mongoose from "mongoose";
 import morgan from "morgan";
 import path from "path";
 import { fileURLToPath } from "url";
+import https from "https";
 
 import adminRoutes from "./routes/admin.js";
 import authRoutes from "./routes/auth.js";
@@ -132,12 +133,26 @@ mongoose
   });
 
 /* =========================
-   💀 GLOBAL ERROR HANDLER
+   💀 GLOBAL ERROR HANDLER & KEEP-ALIVE
 ========================= */
 process.on("unhandledRejection", (err) => {
   console.error("❌ Unhandled Promise Rejection:", err);
+  process.exit(1);
 });
 
 process.on("uncaughtException", (err) => {
   console.error("❌ Uncaught Exception:", err);
+  process.exit(1);
 });
+
+// Trick Render into staying awake
+if (process.env.NODE_ENV === "production" && process.env.RENDER_EXTERNAL_URL) {
+  const pingUrl = `${process.env.RENDER_EXTERNAL_URL}/api/health`;
+  setInterval(() => {
+    https.get(pingUrl, (res) => {
+      console.log(`📡 Keep-Alive Ping sent to ${pingUrl} (Status: ${res.statusCode})`);
+    }).on("error", (err) => {
+      console.error(`❌ Keep-Alive Ping failed:`, err.message);
+    });
+  }, 10 * 60 * 1000); // 10 minutes
+}

@@ -10,7 +10,7 @@ const defaultAPI = isDev
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || defaultAPI,
-  timeout: 10000, // ⏱️ prevent hanging requests
+  timeout: 60000, // ⏱️ 60 seconds (allows time for Render backend to wake up from sleep)
 });
 
 /* =========================

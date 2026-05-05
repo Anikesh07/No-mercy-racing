@@ -28,7 +28,7 @@ const sections = [
     title: "Entry Rules",
     icon: <Trophy className="text-yellow-400" />,
     items: [
-      "Entry Fee: $25,000",
+      "Entry Fee: Free for this season",
       "No refunds allowed after registration",
       "Teams must confirm participation before start"
     ]
@@ -59,6 +59,24 @@ const sections = [
       "Teams must plan strategy carefully for maximum performance"
     ]
   },
+
+{
+  title: "Core Race Regulations",
+  icon: <ShieldCheck className="text-red-400" />,
+  highlight: true,
+  items: [
+    "All races must run on 60 FPS lock and clear visiblely",
+    "POV must be recorded/stream in OBS with Full Display Capture",
+    "POV recording is mandatory for every race",
+    "POV must show Steam Apps and Task Manager at race start",
+    "No PIT maneuvers, ramming, or intentional blocking allowed",
+    "No VIN scratched vehicles allowed",
+    "Management decisions are final and binding",
+    "Management can ban any overpowered vehicle at any time",
+    "Each crew must include at least one female participant (mandatory)"
+  ]
+},
+
   // 🔥 MOST IMPORTANT FIRST
   {
     title: "Dirty Driving (STRICT)",
@@ -102,7 +120,7 @@ const sections = [
     highlight: true,
     items: [
       "Skipping races is strictly not allowed",
-      "Penalty: $300,000 – $500,000",
+      "Penalty: $50,000 – $100,000",
       "Additional disciplinary action may apply"
     ]
   },

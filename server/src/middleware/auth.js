@@ -38,8 +38,8 @@ export function requireAdmin(req, res, next) {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "dev-secret");
 
     // ✅ enforce role check (IMPORTANT)
-    if (decoded.role !== "admin") {
-      return res.status(403).json({ message: "Admin access only" });
+    if (decoded.role !== "admin" && decoded.role !== "staff") {
+      return res.status(403).json({ message: "Admin or Staff access only" });
     }
 
     req.admin = decoded;
