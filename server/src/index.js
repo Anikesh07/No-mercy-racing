@@ -33,15 +33,18 @@ if (!process.env.MONGO_URI) {
 /* =========================
    🌍 CORS SETUP
 ========================= */
-const allowedOrigin =
-  process.env.CLIENT_ORIGIN ||
-  [
-    "https://no-mercy-racing-3vbd.vercel.app", // Deployed Frontend
-    "http://localhost:5173", // Local Frontend
-    "http://localhost:5000"
-  ];
+const envOrigin = process.env.CLIENT_ORIGIN;
+const allowedOrigins = [
+  "https://no-mercy-racing-3vbd.vercel.app", // Deployed Frontend
+  "http://localhost:5173", // Local Frontend
+  "http://localhost:5000"
+];
 
-app.use(cors({ origin: allowedOrigin, credentials: true }));
+if (envOrigin && !allowedOrigins.includes(envOrigin)) {
+  allowedOrigins.push(envOrigin);
+}
+
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 
 /* =========================
    🧱 MIDDLEWARE
