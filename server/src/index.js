@@ -35,7 +35,11 @@ if (!process.env.MONGO_URI) {
 ========================= */
 const allowedOrigin =
   process.env.CLIENT_ORIGIN ||
-  /^http:\/\/(localhost|127\.0\.0\.1):\d+$/;
+  [
+    "https://no-mercy-racing-3vbd.vercel.app", // Deployed Frontend
+    "http://localhost:5173", // Local Frontend
+    "http://localhost:5000"
+  ];
 
 app.use(cors({ origin: allowedOrigin, credentials: true }));
 

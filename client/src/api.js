@@ -3,8 +3,13 @@ import axios from "axios";
 /* =========================
    🌐 BASE API INSTANCE
 ========================= */
+const isDev = import.meta.env.DEV;
+const defaultAPI = isDev 
+  ? "http://localhost:5000/api" 
+  : "https://nmrl-backend.onrender.com/api";
+
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
+  baseURL: import.meta.env.VITE_API_URL || defaultAPI,
   timeout: 10000, // ⏱️ prevent hanging requests
 });
 
