@@ -12,6 +12,15 @@ import { applyResults } from "../services/scoring.js";
 const router = express.Router();
 router.use(requireAdmin);
 
+
+router.use((req, res, next) => {
+  if (!req.admin) {
+    return res.status(401).json({ message: "Unauthorized admin access" });
+  }
+  next();
+});
+
+
 async function buildParticipants(teamIds, raceType) {
   const limit = raceType === "Team" ? 4 : raceType === "Duo" ? 2 : 0;
   const participants = [];
@@ -55,6 +64,7 @@ router.get("/dashboard", async (_req, res) => {
   }
 });
 
+
 router.patch("/teams/:id/status", async (req, res) => {
   try {
     const { status } = req.body;
@@ -92,8 +102,8 @@ router.patch("/teams/:id/status", async (req, res) => {
 
     res.json(team);
   } catch (err) {
-  console.error(err);
-  alert(err.response?.data?.message || "Failed to update status");
+  console.error("❌ TEAM STATUS ERROR:", err);
+  res.status(500).json({ message: "Failed to update status" });
 }
 });
 
@@ -120,7 +130,7 @@ router.post("/chat", async (req, res) => {
     }
 
     const created = await AdminMessage.create({
-      author: req.admin?.username || "admin",
+      author: req.admin?.username || req.admin?.id || "admin",
       message
     });
 
@@ -621,9 +631,17 @@ router.patch("/drivers/:id/status", async (req, res) => {
     }
 
     // ❌ Prevent useless update
-    if (driver.status === status) {
-      return res.status(400).json({ message: `Driver already ${status}` });
-    }
+    const normalizedStatus = String(status).trim();
+
+if (!allowedStatuses.includes(normalizedStatus)) {
+  return res.status(400).json({ message: "Invalid status" });
+}
+
+if (driver.status === normalizedStatus) {
+  return res.status(400).json({ message: `Driver already ${normalizedStatus}` });
+}
+
+driver.status = normalizedStatus;
 
     // 🔥 STATUS LOGIC
     let pointsDelta = 0;
