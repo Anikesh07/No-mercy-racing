@@ -2,6 +2,7 @@ import { CalendarDays, Trophy, Crown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import bg from "../assets/bg.png";
 
 export default function Home() {
   const [leaderboards, setLeaderboards] = useState({ teams: [], drivers: [] });
@@ -20,61 +21,66 @@ export default function Home() {
     <div className="mx-auto max-w-7xl px-4 py-10 space-y-14">
 
       {/* 🔥 HERO */}
-      <section className="relative rounded-2xl border border-white/10 bg-black p-8 overflow-hidden">
-        <div className="absolute inset-0 opacity-20 bg-gradient-to-r from-neonPink via-purple-500 to-neonBlue blur-2xl"></div>
+      <section className="relative rounded-2xl border border-white/10 overflow-hidden h-[420px] flex items-center p-8">
 
-        <div className="relative z-10">
-          <p className="text-xs tracking-widest text-neonBlue">
-  HydraLyx
-</p>
+  {/* 🖼 BACKGROUND IMAGE */}
+  <img
+    src={bg}
+    alt="bg"
+    className="absolute inset-0 w-full h-full object-cover"
+  />
 
-          <h1 className="text-5xl font-black mt-2 bg-gradient-to-r from-white via-neonPink to-purple-400 bg-clip-text text-transparent">
-            NO MERCY RACING LEAGUE
-          </h1>
+  {/* 🔥 DARK OVERLAY (READABILITY FIX) */}
+  <div className="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
 
-          <p className="mt-4 text-slate-400 max-w-xl">
-            This isn’t racing. This is war on wheels.  
-            Only the fastest survive.
-          </p>
+  {/* CONTENT */}
+  <div className="relative z-10">
+    <p className="text-xs tracking-widest text-neonBlue">
+      HydraLyx
+    </p>
 
-          <div className="mt-6 flex gap-4 flex-wrap">
+    <h1 className="text-5xl font-black mt-2 bg-gradient-to-r from-white via-neonPink to-purple-400 bg-clip-text text-transparent">
+      NO MERCY RACING LEAGUE
+    </h1>
 
-  <Link
-    to="/register"
-    className="px-5 py-2.5 rounded-lg font-semibold text-black 
-    bg-gradient-to-r from-neonPink to-purple-500 
-    shadow-[0_0_20px_rgba(255,0,150,0.6)] 
-    hover:scale-105 hover:shadow-[0_0_30px_rgba(255,0,150,0.9)]
-    transition duration-200"
-  >
-    Join Race
-  </Link>
+    <p className="mt-4 text-slate-300 max-w-xl">
+      This isn’t racing. This is war on wheels.  
+      Only the fastest survive.
+    </p>
 
-  <Link
-    to="/fixtures"
-    className="px-5 py-2.5 rounded-lg font-semibold text-neonBlue 
-    border border-neonBlue/40 
-    hover:bg-neonBlue/10 hover:border-neonBlue 
-    hover:scale-105
-    transition duration-200"
-  >
-    Schedule
-  </Link>
+    <div className="mt-6 flex gap-4 flex-wrap">
 
-  <Link
-    to="/pov-submit"
-    className="px-5 py-2.5 rounded-lg font-semibold text-yellow-400 
-    border border-yellow-400/40 
-    hover:bg-yellow-400/10 hover:border-yellow-400 
-    hover:scale-105
-    transition duration-200"
-  >
-    Submit POV
-  </Link>
+      <Link
+        to="/register"
+        className="px-5 py-2.5 rounded-lg font-semibold text-black 
+        bg-gradient-to-r from-neonPink to-purple-500 
+        shadow-[0_0_20px_rgba(255,0,150,0.6)] 
+        hover:scale-105 transition"
+      >
+        Join Race
+      </Link>
 
-</div>
-        </div>
-      </section>
+      <Link
+        to="/fixtures"
+        className="px-5 py-2.5 rounded-lg font-semibold text-neonBlue 
+        border border-neonBlue/40 
+        hover:bg-neonBlue/10 transition"
+      >
+        Schedule
+      </Link>
+
+      <Link
+        to="/pov-submit"
+        className="px-5 py-2.5 rounded-lg font-semibold text-yellow-400 
+        border border-yellow-400/40 
+        hover:bg-yellow-400/10 transition"
+      >
+        Submit POV
+      </Link>
+
+    </div>
+  </div>
+</section>
 
       {/* 🏁 TOGGLE + PODIUM */}
       <section>
