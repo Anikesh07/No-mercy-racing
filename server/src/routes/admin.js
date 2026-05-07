@@ -619,6 +619,34 @@ router.patch("/povs/:matchId/:povId", async (req, res) => {
 });
 
 
+router.patch("/drivers/:id", async (req, res) => {
+  try {
+    const { alias, icName, phone, discord, role } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "Invalid driver ID" });
+    }
+
+    const driver = await Driver.findById(req.params.id);
+    if (!driver) {
+      return res.status(404).json({ message: "Driver not found" });
+    }
+
+    if (alias !== undefined) driver.alias = alias;
+    if (icName !== undefined) driver.icName = icName;
+    if (phone !== undefined) driver.phone = phone;
+    if (discord !== undefined) driver.discord = discord;
+    if (role !== undefined) driver.role = role;
+
+    await driver.save();
+
+    res.json({ message: "Driver updated successfully", driver });
+  } catch (err) {
+    console.error("🔥 DRIVER UPDATE ERROR:", err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 router.patch("/drivers/:id/status", async (req, res) => {
   try {
     const { status, reason = "" } = req.body;
@@ -651,15 +679,15 @@ router.patch("/drivers/:id/status", async (req, res) => {
     // ❌ Prevent useless update
     const normalizedStatus = String(status).trim();
 
-if (!allowedStatuses.includes(normalizedStatus)) {
-  return res.status(400).json({ message: "Invalid status" });
-}
+    if (!allowedStatuses.includes(normalizedStatus)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
 
-if (driver.status === normalizedStatus) {
-  return res.status(400).json({ message: `Driver already ${normalizedStatus}` });
-}
+    if (driver.status === normalizedStatus) {
+      return res.status(400).json({ message: `Driver already ${normalizedStatus}` });
+    }
 
-driver.status = normalizedStatus;
+    driver.status = normalizedStatus;
 
     // 🔥 STATUS LOGIC
     let pointsDelta = 0;
@@ -678,27 +706,26 @@ driver.status = normalizedStatus;
 
     // 🔥 Apply penalty if needed
     if (pointsDelta !== 0 && driver.teamId) {
-  const teamId = typeof driver.teamId === "object"
-    ? driver.teamId._id
-    : driver.teamId;
+      const teamId = typeof driver.teamId === "object"
+        ? driver.teamId._id
+        : driver.teamId;
 
-  await Team.findByIdAndUpdate(teamId, {
-    $inc: { points: pointsDelta }
-  });
+      await Team.findByIdAndUpdate(teamId, {
+        $inc: { points: pointsDelta }
+      });
 
-  await Penalty.create({
-    teamId,
-    driverId: driver._id,
-    type: status,
-    pointsDelta,
-    reason: reason || `Auto penalty: ${status}`
-  });
-}
+      await Penalty.create({
+        teamId,
+        driverId: driver._id,
+        type: status,
+        pointsDelta,
+        reason: reason || `Auto penalty: ${status}`
+      });
+    }
 
     // 🔄 Update driver
-    driver.status = status;
-driver.markModified("status");
-await driver.save();
+    driver.markModified("status");
+    await driver.save();
 
     // ✅ Response
     res.json({
@@ -707,9 +734,9 @@ await driver.save();
     });
 
   } catch (err) {
-  console.error("🔥 DRIVER STATUS ERROR:", err);
-  res.status(500).json({ message: err.message });
-}
+    console.error("🔥 DRIVER STATUS ERROR:", err);
+    res.status(500).json({ message: err.message });
+  }
 });
 
 export default router;

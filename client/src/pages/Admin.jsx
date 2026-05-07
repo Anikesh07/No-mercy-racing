@@ -104,6 +104,11 @@ export default function Admin() {
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [editingTeam, setEditingTeam] = useState(null);
+  const [viewTeam, setViewTeam] = useState(null);
+  const [isEditingInView, setIsEditingInView] = useState(false);
+  const [teamActionMenuOpen, setTeamActionMenuOpen] = useState(false);
+  const [driverActionMenuOpen, setDriverActionMenuOpen] = useState(false);
+  const [editingDriver, setEditingDriver] = useState(null);
 
   const isAuthed = Boolean(token);
 
@@ -170,12 +175,33 @@ const updateTeam = async (team) => {
   await api.patch(`/admin/teams/${team._id}`, {
     crewName: team.crewName,
     leaderName: team.leaderName,
+    discord: team.discord,
     points: team.points === "" ? 0 : Number(team.points)
   });
 
   await load();
-setSaving(false);
-setEditingTeam(null);
+  setSaving(false);
+  setEditingTeam(null);
+};
+
+const updateDriver = async (driver) => {
+  setSaving(true);
+
+  await api.patch(`/admin/drivers/${driver._id}`, {
+    alias: driver.alias,
+    icName: driver.icName,
+    phone: driver.phone,
+    discord: driver.discord,
+    role: driver.role
+  });
+
+  await load();
+  setSaving(false);
+  setEditingDriver(null);
+};
+
+const getTeamDrivers = (teamId) => {
+  return dashboard.drivers.filter((driver) => String(driver.teamId?._id || driver.teamId) === String(teamId));
 };
 
   const generateFixtures = async () => {
@@ -260,6 +286,15 @@ setEditingTeam(null);
                     <td><Badge tone={team.status === "Approved" ? "green" : team.status === "Rejected" ? "red" : "yellow"}>{team.status}</Badge></td>
                     <td className="flex gap-2 py-2">
 
+  {/* View team */}
+  <button
+    title="View team details"
+    onClick={() => setViewTeam(team)}
+    className="rounded-lg border border-slate-400/40 p-2 text-slate-300"
+  >
+    <Eye className="h-4 w-4" />
+  </button>
+
   {/* Approve */}
   <button
     title="Approve"
@@ -278,15 +313,6 @@ setEditingTeam(null);
     <CircleSlash className="h-4 w-4" />
   </button>
 
-  {/* Edit */}
-  <button
-    title="Edit"
-    onClick={() => setEditingTeam(team)}
-    className="rounded-lg border border-neonBlue/40 p-2 text-neonBlue"
-  >
-    ✏️
-  </button>
-
   {/* Delete */}
   <button
     title="Delete"
@@ -303,6 +329,305 @@ setEditingTeam(null);
             </table>
           </div>
         </Panel>}
+
+        {viewTeam && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6" onClick={() => { setViewTeam(null); setIsEditingInView(false); setEditingTeam(null); }}>
+            <div className="w-full max-w-4xl overflow-hidden rounded-3xl border border-white/10 bg-slate-950 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex flex-col gap-3 border-b border-white/10 bg-slate-900/80 px-6 py-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h2 className="text-xl font-bold">{viewTeam.crewName} — Full Team</h2>
+                  <p className="mt-1 text-sm text-slate-400">Leader: {viewTeam.leaderName} · Status: {viewTeam.status} · Discord: {viewTeam.discord}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setTeamActionMenuOpen((open) => !open);
+                      }}
+                      className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 hover:bg-white/10"
+                    >
+                      Actions ▾
+                    </button>
+                    {teamActionMenuOpen && (
+                      <div className="absolute right-0 mt-2 w-44 rounded-2xl border border-white/10 bg-slate-950 p-2 shadow-2xl">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingTeam(viewTeam);
+                            setIsEditingInView(true);
+                            setTeamActionMenuOpen(false);
+                          }}
+                          className="w-full rounded-xl px-3 py-2 text-left text-sm text-slate-200 hover:bg-white/5"
+                        >
+                          Edit team
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setViewTeam(null);
+                            setIsEditingInView(false);
+                            setEditingTeam(null);
+                            setTeamActionMenuOpen(false);
+                          }}
+                          className="w-full rounded-xl px-3 py-2 text-left text-sm text-slate-200 hover:bg-white/5"
+                        >
+                          Close modal
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <button type="button" onClick={() => { setViewTeam(null); setIsEditingInView(false); setEditingTeam(null); setTeamActionMenuOpen(false); }} className="rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-200 hover:bg-white/5">
+                    Close
+                  </button>
+                </div>
+              </div>
+              {isEditingInView && editingTeam && editingTeam._id === viewTeam._id ? (
+                <div className="grid gap-4 p-6">
+                  <div className="grid gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 md:grid-cols-3">
+                    <div>
+                      <p className="text-xs uppercase text-slate-400">Crew</p>
+                      <input
+                        className="mt-1 w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm"
+                        value={editingTeam.crewName}
+                        onChange={(e) => setEditingTeam({ ...editingTeam, crewName: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase text-slate-400">Leader</p>
+                      <input
+                        className="mt-1 w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm"
+                        value={editingTeam.leaderName}
+                        onChange={(e) => setEditingTeam({ ...editingTeam, leaderName: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase text-slate-400">Points</p>
+                      <input
+                        type="number"
+                        className="mt-1 w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm"
+                        value={editingTeam.points}
+                        onChange={(e) => setEditingTeam({ ...editingTeam, points: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 md:grid-cols-2">
+                    <div>
+                      <p className="text-xs uppercase text-slate-400">Discord</p>
+                      <input
+                        className="mt-1 w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm"
+                        value={editingTeam.discord}
+                        onChange={(e) => setEditingTeam({ ...editingTeam, discord: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase text-slate-400">Status</p>
+                      <input
+                        className="mt-1 w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm"
+                        value={editingTeam.status}
+                        onChange={(e) => setEditingTeam({ ...editingTeam, status: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                    <button
+                      type="button"
+                      onClick={() => { setIsEditingInView(false); setEditingTeam(null); }}
+                      className="rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-200 hover:bg-white/5"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await updateTeam(editingTeam);
+                        setIsEditingInView(false);
+                        setViewTeam(null);
+                      }}
+                      disabled={saving}
+                      className="rounded-lg bg-neonBlue px-4 py-2 text-sm font-semibold text-black disabled:opacity-60"
+                    >
+                      {saving ? "Saving..." : "Save Changes"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid gap-4 p-6">
+                  <div className="grid gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 md:grid-cols-3">
+                    <div>
+                      <p className="text-xs uppercase text-slate-400">Crew</p>
+                      <p className="mt-1 font-semibold">{viewTeam.crewName}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase text-slate-400">Leader</p>
+                      <p className="mt-1 font-semibold">{viewTeam.leaderName}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase text-slate-400">Points</p>
+                      <p className="mt-1 font-semibold">{viewTeam.points}</p>
+                    </div>
+                  </div>
+                  <div className="overflow-x-auto rounded-2xl border border-white/10 bg-slate-950 p-4">
+                    <table className="min-w-full text-sm">
+                      <thead className="border-b border-white/10 text-left text-xs uppercase tracking-wide text-slate-400">
+                        <tr>
+                          <th className="px-3 py-2">Alias</th>
+                          <th className="px-3 py-2">In-Game Name</th>
+                          <th className="px-3 py-2">Role</th>
+                          <th className="px-3 py-2">Status</th>
+                          <th className="px-3 py-2">Discord</th>
+                          <th className="px-3 py-2">Phone</th>
+                          <th className="px-3 py-2">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {getTeamDrivers(viewTeam._id).map((driver) => (
+                          <tr key={driver._id} className="border-b border-white/10 last:border-b-0">
+                            <td className="px-3 py-3">{driver.alias}</td>
+                            <td className="px-3 py-3">{driver.icName}</td>
+                            <td className="px-3 py-3">{driver.role}</td>
+                            <td className="px-3 py-3">{driver.status}</td>
+                            <td className="px-3 py-3">{driver.discord}</td>
+                            <td className="px-3 py-3">{driver.phone}</td>
+                            <td className="px-3 py-3">
+                              <button
+                                type="button"
+                                onClick={() => setEditingDriver(driver)}
+                                className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200 hover:bg-white/10"
+                              >
+                                Edit
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                        {getTeamDrivers(viewTeam._id).length === 0 && (
+                          <tr>
+                            <td colSpan="7" className="px-3 py-4 text-sm text-slate-400">No players registered for this crew yet.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {editingDriver && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6" onClick={() => setEditingDriver(null)}>
+            <div className="w-full max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-slate-950 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between border-b border-white/10 px-6 py-4">
+                <div>
+                  <h3 className="text-lg font-bold">Edit Player: {editingDriver.alias || "Player"}</h3>
+                  <p className="mt-1 text-sm text-slate-400">{editingDriver.icName}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDriverActionMenuOpen((open) => !open);
+                      }}
+                      className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 hover:bg-white/10"
+                    >
+                      Actions ▾
+                    </button>
+                    {driverActionMenuOpen && (
+                      <div className="absolute right-0 mt-2 w-48 rounded-2xl border border-white/10 bg-slate-950 p-2 shadow-2xl">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            await updateDriver(editingDriver);
+                            setDriverActionMenuOpen(false);
+                          }}
+                          className="w-full rounded-xl px-3 py-2 text-left text-sm text-slate-200 hover:bg-white/5"
+                        >
+                          Save player
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingDriver(null);
+                            setDriverActionMenuOpen(false);
+                          }}
+                          className="w-full rounded-xl px-3 py-2 text-left text-sm text-slate-200 hover:bg-white/5"
+                        >
+                          Cancel edit
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <button type="button" onClick={() => { setEditingDriver(null); setDriverActionMenuOpen(false); }} className="rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-200 hover:bg-white/5">Close</button>
+                </div>
+              </div>
+              <div className="grid gap-4 p-6">
+                <div className="grid gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 md:grid-cols-2">
+                  <div>
+                    <p className="text-xs uppercase text-slate-400">Alias</p>
+                    <input
+                      className="mt-1 w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm"
+                      value={editingDriver.alias || ""}
+                      onChange={(e) => setEditingDriver({ ...editingDriver, alias: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase text-slate-400">In-Game Name</p>
+                    <input
+                      className="mt-1 w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm"
+                      value={editingDriver.icName || ""}
+                      onChange={(e) => setEditingDriver({ ...editingDriver, icName: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 md:grid-cols-2">
+                  <div>
+                    <p className="text-xs uppercase text-slate-400">Role</p>
+                    <input
+                      className="mt-1 w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm"
+                      value={editingDriver.role || ""}
+                      onChange={(e) => setEditingDriver({ ...editingDriver, role: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase text-slate-400">Discord</p>
+                    <input
+                      className="mt-1 w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm"
+                      value={editingDriver.discord || ""}
+                      onChange={(e) => setEditingDriver({ ...editingDriver, discord: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4 md:grid-cols-2">
+                  <div>
+                    <p className="text-xs uppercase text-slate-400">Phone</p>
+                    <input
+                      className="mt-1 w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm"
+                      value={editingDriver.phone || ""}
+                      onChange={(e) => setEditingDriver({ ...editingDriver, phone: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase text-slate-400">Status</p>
+                    <input
+                      className="mt-1 w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm"
+                      value={editingDriver.status || ""}
+                      disabled
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-3 justify-end border-t border-white/10 px-6 py-4">
+                <button type="button" onClick={() => setEditingDriver(null)} className="rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-200 hover:bg-white/5">Cancel</button>
+                <button type="button" onClick={async () => await updateDriver(editingDriver)} disabled={saving} className="rounded-lg bg-neonBlue px-4 py-2 text-sm font-semibold text-black disabled:opacity-60">
+                  {saving ? "Saving..." : "Save Player"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {activeSection === "results" && (
           <ResultEntry
@@ -338,7 +663,7 @@ setEditingTeam(null);
       </div>
 
       {/* 🔥 EDIT TEAM MODAL (ADD HERE) */}
-      {editingTeam && (
+      {editingTeam && !isEditingInView && (
         <div
   className="fixed inset-0 flex items-center justify-center bg-black/70 z-50"
   onClick={() => setEditingTeam(null)}
@@ -363,6 +688,14 @@ setEditingTeam(null);
               value={editingTeam.leaderName}
               onChange={(e) =>
                 setEditingTeam({ ...editingTeam, leaderName: e.target.value })
+              }
+            />
+
+            <input
+              className="w-full p-2 bg-white/10 rounded"
+              value={editingTeam.discord}
+              onChange={(e) =>
+                setEditingTeam({ ...editingTeam, discord: e.target.value })
               }
             />
 
@@ -532,52 +865,55 @@ function FixtureManager({ teams, matches, fixtureForm, setFixtureForm, generateF
   return (
     <div className="grid gap-5">
       <Panel title="Fixture Creator" action={<CalendarDays className="h-5 w-5 text-neonBlue" />}>
-        <div className="grid gap-3 lg:grid-cols-[150px_190px_1fr_auto] lg:items-end">
-          <label className="grid gap-1 text-sm text-slate-300">
-            Total teams
-            <input
-              type="number"
-              min="2"
-              value={fixtureForm.teamCount}
-              onChange={(event) => setFixtureForm({ ...fixtureForm, teamCount: event.target.value })}
-              className="px-3 py-2"
-            />
-          </label>
-          <label className="grid gap-1 text-sm text-slate-300">
-            Day 1 date
-            <input
-              type="date"
-              value={fixtureForm.startDate}
-              onChange={(event) => setFixtureForm({ ...fixtureForm, startDate: event.target.value })}
-              className="px-3 py-2"
-            />
-          </label>
-          <label className="flex min-h-10 items-center gap-2 text-sm text-slate-300">
-            <input
-              type="checkbox"
-              checked={fixtureForm.shuffle}
-              onChange={(event) => setFixtureForm({ ...fixtureForm, shuffle: event.target.checked })}
-            />
-            <Shuffle className="h-4 w-4 text-neonPink" />
-            Shuffle teams before scheduling
-          </label>
-          <button onClick={generateFixtures} className="inline-flex items-center justify-center gap-2 rounded-lg bg-neonPink px-4 py-2 font-bold text-black">
-            <Trophy className="h-4 w-4" /> Create Draft
+        <div className="grid gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="grid gap-3 md:grid-cols-3">
+            <label className="grid gap-1 text-sm text-slate-300">
+              <span className="font-semibold">Total Teams</span>
+              <input
+                type="number"
+                min="2"
+                value={fixtureForm.teamCount}
+                onChange={(event) => setFixtureForm({ ...fixtureForm, teamCount: event.target.value })}
+                className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="grid gap-1 text-sm text-slate-300">
+              <span className="font-semibold">Day 1 Date</span>
+              <input
+                type="date"
+                value={fixtureForm.startDate}
+                onChange={(event) => setFixtureForm({ ...fixtureForm, startDate: event.target.value })}
+                className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="flex min-h-12 items-center gap-2 rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-300">
+              <input
+                type="checkbox"
+                checked={fixtureForm.shuffle}
+                onChange={(event) => setFixtureForm({ ...fixtureForm, shuffle: event.target.checked })}
+                className="cursor-pointer"
+              />
+              <Shuffle className="h-4 w-4 text-neonPink" />
+              <span className="font-semibold">Shuffle Teams</span>
+            </label>
+          </div>
+          <button onClick={generateFixtures} className="inline-flex justify-center items-center gap-2 rounded-lg bg-neonPink px-4 py-3 font-bold text-black hover:bg-neonPink/90 transition">
+            <Trophy className="h-4 w-4" /> Create Draft Fixtures
           </button>
         </div>
       </Panel>
 
       <Panel title="Publish Control" action={<Eye className="h-5 w-5 text-neonBlue" />}>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap gap-2 relative z-10 bg-black/40 p-2 rounded-lg mb-3">
-            <Badge tone="yellow">{draftCount} draft</Badge>
-            <Badge tone="green">{publishedCount} published</Badge>
+        <div className="grid gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge tone="yellow" className="text-base">{draftCount} draft</Badge>
+            <Badge tone="green" className="text-base">{publishedCount} published</Badge>
           </div>
-          <div className="flex flex-wrap gap-2 relative z-10 bg-black/40 p-2 rounded-lg mb-3">
-            <button onClick={unpublishAll} className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-slate-200 hover:bg-white/10">
+          <div className="flex flex-wrap gap-2">
+            <button onClick={unpublishAll} className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2 text-sm text-slate-200 hover:bg-white/5 transition">
               <EyeOff className="h-4 w-4" /> Hide All
             </button>
-            <button onClick={publishAll} className="inline-flex items-center gap-2 rounded-lg bg-neonBlue px-4 py-2 font-bold text-black">
+            <button onClick={publishAll} className="inline-flex items-center gap-2 rounded-lg bg-neonBlue px-4 py-2 font-bold text-sm text-black hover:bg-neonBlue/90 transition">
               <Eye className="h-4 w-4" /> Confirm & Publish
             </button>
           </div>
@@ -585,17 +921,19 @@ function FixtureManager({ teams, matches, fixtureForm, setFixtureForm, generateF
       </Panel>
 
       <Panel title="Add Race" action={<Plus className="h-5 w-5 text-neonPink" />}>
-        <form onSubmit={addRace} className="grid gap-3 md:grid-cols-[repeat(auto-fit,minmax(150px,1fr))] md:items-end">
-          <FixtureInputs form={addForm} setForm={setAddForm} teams={approvedTeams} includeNotes />
-          <button className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-neonPink px-4 py-2 font-bold text-black">
-            <Plus className="h-4 w-4" /> Add
+        <form onSubmit={addRace} className="grid gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <div className="grid gap-3 md:grid-cols-[repeat(auto-fit,minmax(150px,1fr))] md:items-end">
+            <FixtureInputs form={addForm} setForm={setAddForm} teams={approvedTeams} includeNotes />
+          </div>
+          <button className="inline-flex justify-center items-center gap-2 rounded-lg bg-neonPink px-4 py-3 font-bold text-black hover:bg-neonPink/90 transition">
+            <Plus className="h-4 w-4" /> Add Race
           </button>
         </form>
       </Panel>
 
       <Panel title="Date Wise Fixture Schedule" action={<Save className="h-5 w-5 text-neonBlue" />}>
-  <div className="grid gap-4 mt-6 relative z-0">
-          <div className="flex flex-wrap gap-2 relative z-10 bg-black/40 p-2 rounded-lg mb-3">
+        <div className="grid gap-4 relative z-0">
+          <div className="flex flex-wrap gap-2 rounded-2xl border border-white/10 bg-white/[0.03] p-3">
             {dynamicDayFilters.map((filter) => (
               <button
                 key={filter.id}
@@ -611,10 +949,12 @@ function FixtureManager({ teams, matches, fixtureForm, setFixtureForm, generateF
               </button>
             ))}
           </div>
-          {sortedMatches.length === 0 && <p className="text-sm text-slate-400">Create draft fixtures to schedule them here.</p>}
-          {sortedMatches.map((match) => (
-            <FixtureEditRow key={match._id} match={match} teams={approvedTeams} onDone={onDone} onMessage={onMessage} />
-          ))}
+          {sortedMatches.length === 0 && <p className="text-sm text-slate-400 text-center py-8">Create draft fixtures to schedule them here.</p>}
+          <div className="grid gap-3">
+            {sortedMatches.map((match) => (
+              <FixtureEditRow key={match._id} match={match} teams={approvedTeams} onDone={onDone} onMessage={onMessage} />
+            ))}
+          </div>
         </div>
       </Panel>
     </div>
@@ -628,54 +968,54 @@ function FixtureInputs({ form, setForm, teams, includeNotes = false }) {
   return (
     <>
       <label className="grid min-w-0 gap-1 text-sm text-slate-300">
-        Day
-        <select value={form.day} onChange={(event) => update("day", event.target.value)} className="w-full px-3 py-2">
+        <span className="font-semibold">Day</span>
+        <select value={form.day} onChange={(event) => update("day", event.target.value)} className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm">
           {Array.from({ length: 30 }, (_, index) => index + 1).map((day) => <option key={day} value={day}>Day {day}</option>)}
         </select>
       </label>
       <label className="grid min-w-0 gap-1 text-sm text-slate-300">
-        Slot
-        <input type="number" min="1" value={form.slot} onChange={(event) => update("slot", event.target.value)} className="w-full px-3 py-2" />
+        <span className="font-semibold">Slot</span>
+        <input type="number" min="1" value={form.slot} onChange={(event) => update("slot", event.target.value)} className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm" />
       </label>
       <label className="grid min-w-0 gap-1 text-sm text-slate-300">
-        Date
-        <input type="date" value={form.raceDate} onChange={(event) => update("raceDate", event.target.value)} className="w-full px-3 py-2" />
+        <span className="font-semibold">Date</span>
+        <input type="date" value={form.raceDate} onChange={(event) => update("raceDate", event.target.value)} className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm" />
       </label>
       <label className="grid min-w-0 gap-1 text-sm text-slate-300">
-        Time
-        <input type="time" value={form.raceTime} onChange={(event) => update("raceTime", event.target.value)} className="w-full px-3 py-2" />
+        <span className="font-semibold">Time</span>
+        <input type="time" value={form.raceTime} onChange={(event) => update("raceTime", event.target.value)} className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm" />
       </label>
       <label className="grid min-w-0 gap-1 text-sm text-slate-300">
-        Track
-        <input list="track-list" value={form.trackName || ""} onChange={(event) => update("trackName", event.target.value)} placeholder="Track name" className="w-full px-3 py-2" />
+        <span className="font-semibold">Track</span>
+        <input list="track-list" value={form.trackName || ""} onChange={(event) => update("trackName", event.target.value)} placeholder="Track name" className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm" />
         <datalist id="track-list">
           {RACE_TRACKS.map(track => <option key={track} value={track} />)}
         </datalist>
       </label>
       <label className="grid min-w-0 gap-1 text-sm text-slate-300">
-        Car
-        <input value={form.carName || ""} onChange={(event) => update("carName", event.target.value)} placeholder="Car name" className="w-full px-3 py-2" />
+        <span className="font-semibold">Car</span>
+        <input value={form.carName || ""} onChange={(event) => update("carName", event.target.value)} placeholder="Car name" className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm" />
       </label>
       <label className="grid min-w-0 gap-1 text-sm text-slate-300">
-        Race
+        <span className="font-semibold">Race Type</span>
         <select
           value={form.type}
           onChange={(event) => {
             const type = event.target.value;
             setForm({ ...form, type, teamMode: ["Solo", "Rivalry"].includes(type) ? "two" : form.teamMode });
           }}
-          className="w-full px-3 py-2"
+          className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm"
         >
           {Object.entries(raceNames).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
       </label>
       <label className="grid min-w-0 gap-1 text-sm text-slate-300">
-        Teams
+        <span className="font-semibold">Teams</span>
         <select
           value={["Solo", "Rivalry"].includes(form.type) ? "two" : form.teamMode}
           onChange={(event) => update("teamMode", event.target.value)}
           disabled={["Solo", "Rivalry"].includes(form.type)}
-          className="w-full px-3 py-2 disabled:opacity-60"
+          className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm disabled:opacity-60"
         >
           <option value="all">All approved teams</option>
           <option value="two">Select 2 teams</option>
@@ -683,18 +1023,18 @@ function FixtureInputs({ form, setForm, teams, includeNotes = false }) {
       </label>
       {useTwoTeams && (
         <div className="grid min-w-0 gap-2 md:col-span-2 md:grid-cols-2">
-          <select value={form.teamA} onChange={(event) => update("teamA", event.target.value)} className="w-full px-3 py-2">
+          <select value={form.teamA} onChange={(event) => update("teamA", event.target.value)} className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm">
             <option value="">Team A</option>
             {teams.map((team) => <option key={team._id} value={team._id}>{team.crewName}</option>)}
           </select>
-          <select value={form.teamB} onChange={(event) => update("teamB", event.target.value)} className="w-full px-3 py-2">
+          <select value={form.teamB} onChange={(event) => update("teamB", event.target.value)} className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm">
             <option value="">Team B</option>
             {teams.filter((team) => team._id !== form.teamA).map((team) => <option key={team._id} value={team._id}>{team.crewName}</option>)}
           </select>
         </div>
       )}
       {includeNotes && (
-        <input value={form.notes} onChange={(event) => update("notes", event.target.value)} placeholder="Notes optional" className="w-full px-3 py-2 md:col-span-2" />
+        <input value={form.notes} onChange={(event) => update("notes", event.target.value)} placeholder="Notes optional" className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm md:col-span-2" />
       )}
     </>
   );
@@ -702,6 +1042,7 @@ function FixtureInputs({ form, setForm, teams, includeNotes = false }) {
 
 function FixtureEditRow({ match, teams, onDone, onMessage }) {
   const initialTeamIds = teamIdsFromMatch(match);
+  const [actionMenuOpen, setActionMenuOpen] = useState(false);
   const [form, setForm] = useState({
     day: match.day || 1,
     slot: match.slot || 1,
@@ -746,21 +1087,46 @@ const save = async () => {
 };
 
   return (
-    <div className="relative z-0 rounded-lg border border-white/10 bg-white/[0.03] p-3 mb-3">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
+    <div className="relative z-0 rounded-lg border border-white/10 bg-white/[0.03] p-4">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Badge tone={form.isPublished ? "green" : "yellow"}>{form.isPublished ? "Published" : "Draft"}</Badge>
           <RaceTypeBadge type={form.type} />
-          <span className="text-sm text-slate-400">{match.teams?.map((team) => team.crewName).join(" vs ")}</span>
+          <span className="text-sm font-medium text-slate-300">{match.teams?.map((team) => team.crewName).join(" vs ")}</span>
         </div>
-        <label className="flex items-center gap-2 text-sm text-slate-300">
-          <input type="checkbox" checked={form.isPublished} onChange={(event) => setForm({ ...form, isPublished: event.target.checked })} />
-          Show on main website (Save to apply)
-        </label>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setActionMenuOpen((open) => !open);
+            }}
+            className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 hover:bg-white/10 transition"
+          >
+            Actions ▾
+          </button>
+          {actionMenuOpen && (
+            <div className="absolute right-0 mt-2 w-48 rounded-2xl border border-white/10 bg-slate-950 p-2 shadow-2xl z-50">
+              <label className="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-slate-200 hover:bg-white/5 cursor-pointer">
+                <input type="checkbox" checked={form.isPublished} onChange={(event) => setForm({ ...form, isPublished: event.target.checked })} />
+                <span>Show on website</span>
+              </label>
+              <button
+                onClick={async () => {
+                  await save();
+                  setActionMenuOpen(false);
+                }}
+                className="w-full rounded-xl px-3 py-2 text-left text-sm text-slate-200 hover:bg-white/5"
+              >
+                Save changes
+              </button>
+            </div>
+          )}
+        </div>
       </div>
       <div className="grid gap-3 md:grid-cols-[repeat(auto-fit,minmax(150px,1fr))] md:items-end">
         <FixtureInputs form={form} setForm={setForm} teams={teams} includeNotes />
-        <button onClick={save} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-neonBlue px-4 py-2 font-bold text-black">
+        <button onClick={save} className="inline-flex justify-center items-center gap-2 rounded-lg bg-neonBlue px-4 py-2 font-bold text-sm text-black hover:bg-neonBlue/90 transition">
           <Save className="h-4 w-4" /> Save
         </button>
       </div>
