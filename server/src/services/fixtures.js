@@ -35,6 +35,19 @@ function shuffleList(items) {
   return shuffled;
 }
 
+function getQualifierCount(teamCount) {
+  const count = Number(teamCount);
+  if (count <= 8) return count;
+  if (count <= 10) return 8;
+  if (count <= 13) return 10;
+  if (count <= 15) return 12;
+  return count - (count % 2);
+}
+
+function flattenRounds(rounds) {
+  return rounds.reduce((acc, round) => acc.concat(round), []);
+}
+
 function generateRoundRobinSchedule(teams) {
   const t = [...teams];
   if (t.length % 2 !== 0) {
@@ -145,6 +158,7 @@ export async function generateFixtures() {
       duoParticipants.push({ teamId: team._id, driverIds: duo.map((driver) => driver._id) });
     }
 
+    // Day 1-2: ONLY Grand Prix races
     matches.push({
       day,
       slot: 1,
@@ -154,21 +168,26 @@ export async function generateFixtures() {
       participants: teamParticipants
     });
 
-    matches.push({
-      day,
-      slot: 2,
-      type: "Duo",
-      trackName: getRandomTrack(),
-      teams: teams.map((team) => team._id),
-      participants: duoParticipants
-    });
+    // Days 3+: Include Duo matches
+    if (day >= 3) {
+      matches.push({
+        day,
+        slot: 2,
+        type: "Duo",
+        trackName: getRandomTrack(),
+        teams: teams.map((team) => team._id),
+        participants: duoParticipants
+      });
+    }
   }
 
+  // Solo matches only from day 3 onwards
   const soloRounds = generateRoundRobinSchedule(teams);
-  const dailySlots = { 2: 3, 3: 3, 4: 3, 5: 3, 6: 3, 7: 3 };
+  const dailySlots = { 3: 3, 4: 3, 5: 3, 6: 3, 7: 3 };
 
   soloRounds.forEach((roundMatches, roundIndex) => {
-    const day = 2 + (roundIndex % 6);
+    // Start from day 3 instead of day 2
+    const day = 3 + (roundIndex % 5);
     roundMatches.forEach(([home, away]) => {
       matches.push({
         day,
@@ -199,6 +218,7 @@ export async function generateCustomFixtures({ teamCount, startDate, shuffle = t
   for (let day = 1; day <= 7; day += 1) {
     const raceDate = dateForDay(startDate, day);
 
+    // Days 1-2: ONLY Grand Prix races (Team matches)
     matches.push({
       day,
       raceDate,
@@ -209,23 +229,28 @@ export async function generateCustomFixtures({ teamCount, startDate, shuffle = t
       participants: await participantsForTeams(teams, "Team")
     });
 
-    matches.push({
-      day,
-      raceDate,
-      slot: 2,
-      type: "Duo",
-      trackName: getRandomTrack(),
-      teams: teams.map((team) => team._id),
-      participants: await participantsForTeams(teams, "Duo")
-    });
+    // Days 3+: Include Duo matches
+    if (day >= 3) {
+      matches.push({
+        day,
+        raceDate,
+        slot: 2,
+        type: "Duo",
+        trackName: getRandomTrack(),
+        teams: teams.map((team) => team._id),
+        participants: await participantsForTeams(teams, "Duo")
+      });
+    }
   }
 
+  // Solo matches only from day 3 onwards
   const soloRounds = generateRoundRobinSchedule(teams);
   const shuffledRounds = shuffle ? shuffleList(soloRounds) : soloRounds;
-  const dailySlots = { 2: 3, 3: 3, 4: 3, 5: 3, 6: 3, 7: 3 };
+  const dailySlots = { 3: 3, 4: 3, 5: 3, 6: 3, 7: 3 };
 
   shuffledRounds.forEach((roundMatches, roundIndex) => {
-    const day = 2 + (roundIndex % 6);
+    // Start from day 3 instead of day 2
+    const day = 3 + (roundIndex % 5);
     roundMatches.forEach(([home, away]) => {
       matches.push({
         day,
@@ -284,3 +309,204 @@ export async function assignDrivers(matchId, participantAssignments) {
 
   return match;
 }
+
+/* =====================================================
+   NEW FIXTURE SYSTEM: ROUND ROBIN → ELIMINATION
+   ===================================================== */
+
+/**
+ * Generate all possible Team vs Team matchups for Round Robin
+ * @param {Array} teams - Array of team objects
+ * @returns {Array} Array of [team1, team2] pairs
+ */
+function generateTeamVsTeamMatchups(teams) {
+  const matchups = [];
+  for (let i = 0; i < teams.length; i++) {
+    for (let j = i + 1; j < teams.length; j++) {
+      matchups.push([teams[i], teams[j]]);
+    }
+  }
+  return matchups;
+}
+
+function createBracketPairs(teams) {
+  const pairs = [];
+  let left = 0;
+  let right = teams.length - 1;
+
+  while (left < right) {
+    pairs.push([teams[left], teams[right]]);
+    left += 1;
+    right -= 1;
+  }
+
+  return pairs;
+}
+
+/**
+ * Generate the qualifying stage for Days 1-2.
+ * Only Grand Prix matches are created on these days.
+ * @param {Array} teams - Array of team objects
+ * @param {Date} startDate - Tournament start date
+ * @returns {Array} Array of match objects for the qualifying stage
+ */
+async function generateQualifyingStage(teams, startDate) {
+  const matches = [];
+  const rounds = generateRoundRobinSchedule(teams);
+  const dayRounds = [rounds[0] || [], rounds[1] || []];
+
+  for (let dayIndex = 0; dayIndex < 2; dayIndex += 1) {
+    const day = dayIndex + 1;
+    let slot = 1;
+
+    for (const [team1, team2] of dayRounds[dayIndex]) {
+      const drivers1 = await Driver.find({ teamId: team1._id }).sort({ role: 1, alias: 1 }).limit(4);
+      const drivers2 = await Driver.find({ teamId: team2._id }).sort({ role: 1, alias: 1 }).limit(4);
+
+      matches.push({
+        day,
+        raceDate: dateForDay(startDate, day),
+        slot: slot++,
+        type: "Team",
+        trackName: getRandomTrack(),
+        teams: [team1._id, team2._id],
+        participants: [
+          { teamId: team1._id, driverIds: drivers1.map((d) => d._id) },
+          { teamId: team2._id, driverIds: drivers2.map((d) => d._id) }
+        ]
+      });
+    }
+  }
+
+  return matches;
+}
+
+/**
+ * Get current standings/rankings from completed matches
+ * @returns {Array} Sorted array of teams with their current points
+ */
+async function getCurrentStandings() {
+  const teams = await Team.find({ status: "Approved" }).sort({ points: -1, crewName: 1 });
+  return teams;
+}
+
+/**
+ * Generate Elimination stage matches (Day 3+)
+ * Teams are progressively eliminated based on standings
+ * @param {Array} standings - Teams sorted by points (highest first)
+ * @param {Date} startDate - Tournament start date
+ * @returns {Array} Array of elimination stage match objects
+ */
+async function generateEliminationStage(qualifiers, startDate) {
+  const matches = [];
+  const eliminationPairings = createBracketPairs(qualifiers);
+  const supportPairings = flattenRounds(generateRoundRobinSchedule(qualifiers));
+  let supportIndex = 0;
+  let day = 3;
+
+  for (const [team1, team2] of eliminationPairings) {
+    const drivers1 = await Driver.find({ teamId: team1._id }).sort({ role: 1, alias: 1 }).limit(4);
+    const drivers2 = await Driver.find({ teamId: team2._id }).sort({ role: 1, alias: 1 }).limit(4);
+
+    // Grand Prix elimination match
+    matches.push({
+      day,
+      raceDate: dateForDay(startDate, day),
+      slot: 1,
+      type: "Team",
+      trackName: getRandomTrack(),
+      teams: [team1._id, team2._id],
+      participants: [
+        { teamId: team1._id, driverIds: drivers1.map((d) => d._id) },
+        { teamId: team2._id, driverIds: drivers2.map((d) => d._id) }
+      ]
+    });
+
+    // Duo Clash support match for the same day
+    const duoPair = supportPairings[supportIndex % supportPairings.length];
+    supportIndex += 1;
+    if (duoPair && duoPair[0] && duoPair[1]) {
+      const duoDrivers1 = await Driver.find({ teamId: duoPair[0]._id }).sort({ role: 1, alias: 1 }).limit(2);
+      const duoDrivers2 = await Driver.find({ teamId: duoPair[1]._id }).sort({ role: 1, alias: 1 }).limit(2);
+
+      matches.push({
+        day,
+        raceDate: dateForDay(startDate, day),
+        slot: 2,
+        type: "Duo",
+        trackName: getRandomTrack(),
+        teams: [duoPair[0]._id, duoPair[1]._id],
+        participants: [
+          { teamId: duoPair[0]._id, driverIds: duoDrivers1.map((d) => d._id) },
+          { teamId: duoPair[1]._id, driverIds: duoDrivers2.map((d) => d._id) }
+        ]
+      });
+    }
+
+    // Solo Showdown support match for the same day
+    const soloPair = supportPairings[supportIndex % supportPairings.length];
+    supportIndex += 1;
+    if (soloPair && soloPair[0] && soloPair[1]) {
+      matches.push({
+        day,
+        raceDate: dateForDay(startDate, day),
+        slot: 3,
+        type: "Solo",
+        trackName: getRandomTrack(),
+        teams: [soloPair[0]._id, soloPair[1]._id],
+        participants: [
+          { teamId: soloPair[0]._id, driverIds: [] },
+          { teamId: soloPair[1]._id, driverIds: [] }
+        ]
+      });
+    }
+
+    day += 1;
+  }
+
+  return matches;
+}
+
+/**
+ * Main function: Generate new tournament fixtures with Round Robin → Elimination format
+ * @param {Object} options - { teamCount, startDate, shuffle }
+ * @returns {Array} All generated matches
+ */
+export async function generateNewTournamentFixtures({ teamCount, startDate, shuffle = true } = {}) {
+  const selectedTeams = await ensureApprovedTeams(teamCount);
+  const teams = shuffle ? shuffleList(selectedTeams) : selectedTeams;
+  const qualifierCount = getQualifierCount(teams.length);
+  const qualifiers = teams.slice(0, qualifierCount);
+
+  // Clear existing pending matches
+  await Match.deleteMany({ status: "Pending" });
+  await resetDriverStatuses();
+
+  const matches = [];
+
+  // ===== QUALIFYING STAGE (Days 1-2) =====
+  // Only Team Grand Prix races are generated for the first two days.
+  const qualifyingMatches = await generateQualifyingStage(teams, startDate);
+  matches.push(...qualifyingMatches);
+
+  // ===== ELIMINATION STAGE (Day 3 onwards) =====
+  // Use seeded qualifiers to generate a bracket-style elimination flow.
+  const eliminationMatches = await generateEliminationStage(qualifiers, startDate);
+  matches.push(...eliminationMatches);
+
+  return Match.insertMany(matches);
+}
+
+/* ===================================================
+   OLD FIXTURE SYSTEM (KEPT FOR REFERENCE/ROLLBACK)
+   
+   These functions can be restored if needed.
+   The new system above (generateNewTournamentFixtures)
+   replaces these old fixture generation methods.
+   =================================================== */
+
+/*
+// OLD: generateFixtures() - commented out
+// OLD: generateCustomFixtures() - commented out
+// These are replaced by generateNewTournamentFixtures()
+*/

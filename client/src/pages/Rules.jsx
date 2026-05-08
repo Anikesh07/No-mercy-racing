@@ -7,8 +7,10 @@ import {
   Ban,
   Repeat,
   Video,
-  Crown
+  Crown,
+  Wrench
 } from "lucide-react";
+
 import Panel from "../components/Panel.jsx";
 
 const sections = [
@@ -17,10 +19,8 @@ const sections = [
     icon: <Flag className="text-neonPink" />,
     items: [
       "Event runs for 7 consecutive days",
-      "Minimum 5 teams required",
-      "Each team must have 4 Main, 1 Reserve, and 1 female racer",
       "Management approval required before participation",
-      "Participation = acceptance of all rules"
+      "Participation = acceptance of all league rules"
     ]
   },
 
@@ -38,57 +38,67 @@ const sections = [
     title: "Daily Match Format",
     icon: <Users className="text-neonBlue" />,
     items: [
-      "Grand Prix (All 4 main drivers)",
+      "Grand Prix (4 Drivers each team)",
       "Duo Clash (2 Drivers each team)",
       "Solo Showdown (1 Driver each team)",
-      "All formats contribute to total points"
+      "All race formats contribute to total points"
     ]
   },
 
-  // 🔥 YOUR NEW STRATEGY RULE (IMPORTANT)
   {
-    title: "Race Participation Strategy",
-    icon: <Users className="text-yellow-400" />,
+    title: "Vehicle Regulations",
+    icon: <ShieldCheck className="text-cyan-400" />,
     highlight: true,
     items: [
-      "Top Grand Prix racers are not allowed to participate in Duo or Solo races",
-      "Drivers participating in Duo Clash cannot participate in Solo Showdown",
-      "Each driver can participate in only 1 or 2 races per day",
-      "At least one driver must play only one race",
-      "Remaining drivers must cover two races",
-      "Teams must plan strategy carefully for maximum performance"
+      "Grand Prix: Only Class 6 and Class 7 vehicles allowed",
+      "Duo Clash: Only Class 8 vehicles allowed",
+      "Solo Showdown: Only Muscle class vehicles allowed",
+      "Management can ban any overpowered vehicle on the spot",
+      "Using banned vehicles may result in disqualification"
     ]
   },
 
-{
-  title: "Core Race Regulations",
-  icon: <ShieldCheck className="text-red-400" />,
-  highlight: true,
-  items: [
-    "All races must run on 60 FPS lock and clear visiblely",
-    "POV must be recorded/stream in OBS with Full Display Capture",
-    "POV recording is mandatory for every race",
-    "POV must show Steam Apps and Task Manager at race start",
-    "No PIT maneuvers, ramming, or intentional blocking allowed",
-    "No VIN scratched vehicles allowed",
-    "Management decisions are final and binding",
-    "Management can ban any overpowered vehicle at any time",
-    "Each crew must include at least one female participant (mandatory)"
-  ]
-},
+  {
+    title: "Race Logistics & External Situations",
+    icon: <Wrench className="text-orange-400" />,
+    highlight: true,
+    items: [
+      "Teams are allowed to bring their own mechanic and repair kits",
+      "Hosts will not provide mechanics, repair kits, or race support equipment",
+      "All required race supplies must be arranged by participating crews",
+      "If PD becomes involved during races or chase situations, crews must escape on their own",
+      "Police involvement or chase situations are NOT considered host-side issues",
+      "No restart, compensation, or re-run will be provided due to PD involvement"
+    ]
+  },
 
-  // 🔥 MOST IMPORTANT FIRST
+  {
+    title: "Core Race Regulations",
+    icon: <ShieldCheck className="text-red-400" />,
+    highlight: true,
+    items: [
+      "All races must run on 60 FPS lock with clearly visible gameplay",
+      "POV must be recorded/streamed in OBS using Full Display Capture",
+      "POV recording is mandatory for every race",
+      "POV must show Steam Apps and Task Manager at race start",
+      "No PIT maneuvers, ramming, or intentional blocking allowed",
+      "No VIN scratched vehicles allowed",
+      "Management decisions are final and binding",
+      "Management can ban any overpowered vehicle at any time"
+    ]
+  },
+
   {
     title: "Dirty Driving (STRICT)",
     icon: <Ban className="text-red-500" />,
     highlight: true,
     items: [
-      "No ramming, PIT, blocking, brake-checking",
+      "No ramming, PIT maneuvers, blocking, or brake-checking",
       "Minor violation → Warning",
       "Moderate violation → Position penalty",
       "Major violation → Disqualification",
       "Severe violation → Disqualification + disciplinary action",
-      "Repeated violations → Ban or removal"
+      "Repeated violations → Ban or removal from league"
     ]
   },
 
@@ -97,9 +107,9 @@ const sections = [
     icon: <Flag className="text-cyan-400" />,
     items: [
       "2-line grid system",
-      "Day 1: random grid",
-      "Day 2+: reverse ranking order",
-      "No jump start allowed",
+      "Day 1 grid determined randomly",
+      "Day 2+ grid based on reverse ranking order",
+      "No jump starts allowed",
       "Lane discipline must be maintained"
     ]
   },
@@ -108,20 +118,9 @@ const sections = [
     title: "Disconnect Rule",
     icon: <Repeat className="text-purple-400" />,
     items: [
-      "Disconnect = last position",
+      "Disconnect = automatic last position",
       "No rejoin advantage allowed",
       "Repeated disconnects may lead to penalties"
-    ]
-  },
-
-  {
-    title: "Refusal to Play",
-    icon: <Ban className="text-red-400" />,
-    highlight: true,
-    items: [
-      "Skipping races is strictly not allowed",
-      "Penalty: $50,000 – $100,000",
-      "Additional disciplinary action may apply"
     ]
   },
 
@@ -130,26 +129,19 @@ const sections = [
     icon: <AlertTriangle className="text-yellow-400" />,
     items: [
       "Invalid player participation = result not counted",
-      "Repeated violations lead to penalties"
-    ]
-  },
-
-  {
-    title: "Player Swap Rule",
-    icon: <Repeat className="text-blue-400" />,
-    items: [
-      "Maximum 2 swaps per team",
-      "Must be declared before race",
-      "No mid-race swaps allowed"
+      "Repeated violations may lead to penalties or disqualification"
     ]
   },
 
   {
     title: "POV Submission",
     icon: <Video className="text-neonBlue" />,
+    highlight: true,
     items: [
-      "Top players must submit POV within 24 hours",
-      "Failure to submit may result in admin action"
+      "Required POVs must be submitted within 2 hours after race completion",
+      "League points and standings will only update after both crews submit their POVs",
+      "Failure to submit POV may result in penalties or result cancellation",
+      "Edited, incomplete, or corrupted POVs may be rejected by management"
     ]
   },
 
@@ -157,8 +149,8 @@ const sections = [
     title: "Tie-Breaker",
     icon: <Trophy className="text-yellow-300" />,
     items: [
-      "Each team selects best driver",
-      "1v1 race on hardest track",
+      "Each team selects their best driver",
+      "1v1 race on the hardest selected track",
       "Winner determines final ranking"
     ]
   },
@@ -167,9 +159,9 @@ const sections = [
     title: "Admin Authority",
     icon: <Crown className="text-purple-400" />,
     items: [
-      "Admin enforces all rules",
-      "Handles disputes and decisions",
-      "All admin decisions are final"
+      "Admins enforce all league regulations",
+      "Admins handle disputes and investigations",
+      "All management decisions are final"
     ]
   },
 
@@ -178,9 +170,9 @@ const sections = [
     icon: <ShieldCheck className="text-green-300" />,
     items: [
       "Play fair",
-      "Follow all rules",
-      "Respect decisions",
-      "League rewards discipline and teamwork"
+      "Respect all racers and officials",
+      "Follow all league regulations",
+      "Discipline and consistency win championships"
     ]
   }
 ];
@@ -194,7 +186,11 @@ export default function Rules() {
         <p className="text-xs font-bold uppercase tracking-[0.3em] text-neonBlue">
           Regulations
         </p>
-        <h2 className="mt-2 text-4xl font-black">Rules</h2>
+
+        <h2 className="mt-2 text-4xl font-black">
+          Rules
+        </h2>
+
         <p className="text-slate-400 mt-2">
           Read carefully. Ignorance won’t save you mid-race.
         </p>

@@ -42,6 +42,22 @@ function raceTimeLabel(time) {
   return time || "";
 }
 
+function displayMatchTeams(match) {
+  if (match.type === "Team") {
+    return "All Teams";
+  }
+
+  if (match.type === "Duo") {
+    return "All Teams (2 racers)";
+  }
+
+  const teamNames = match.teams
+    ?.map((team) => (typeof team === "string" ? team : team?.crewName || team?.name || ""))
+    .filter(Boolean);
+
+  return teamNames.length > 0 ? teamNames.join(" vs ") : "All approved teams";
+}
+
 export default function Fixtures() {
   const [fixtures, setFixtures] = useState([]);
   const [dayFilter, setDayFilter] = useState("all");
@@ -122,13 +138,7 @@ export default function Fixtures() {
 
               {/* 🔥 THIS IS THE ONLY IMPORTANT CHANGE */}
               <span className="text-slate-300">
-                {match.type === "Team"
-                  ? "All Teams"
-                  : match.type === "Duo"
-                  ? "All Teams (2 racers)"
-                  : match.teams
-                      ?.map((team) => team.crewName)
-                      .join(" vs ") || "All approved teams"}
+                {displayMatchTeams(match)}
               </span>
 
               <Badge tone={match.status === "Completed" ? "green" : "purple"}>

@@ -5,28 +5,22 @@ import { api } from "../../api.js";
 
 export function Eligibility({ drivers, refresh }) {
   const [loadingId, setLoadingId] = useState(null);
+  const [statusMessage, setStatusMessage] = useState("");
 
   const updateStatus = async (id, status) => {
     try {
-      if (["Banned", "Disqualified"].includes(status)) {
-        const confirm = window.confirm(
-          `Are you sure you want to mark this driver as ${status}?`
-        );
-        if (!confirm) return;
-      }
-
       setLoadingId(id);
+      setStatusMessage("");
 
       const res = await api.patch(`/admin/drivers/${id}/status`, {
         status
       });
 
-      alert(res.data.message || "Status updated");
-
+      setStatusMessage(res.data.message || "Status updated.");
       refresh?.();
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || "Failed to update status");
+      setStatusMessage(err.response?.data?.message || "Failed to update status.");
     } finally {
       setLoadingId(null);
     }
@@ -48,6 +42,11 @@ export function Eligibility({ drivers, refresh }) {
 
   return (
     <Panel title="Driver Eligibility">
+      {statusMessage && (
+        <div className="mb-4 rounded-lg border border-neonBlue/20 bg-neonBlue/10 px-4 py-3 text-sm text-neonBlue">
+          {statusMessage}
+        </div>
+      )}
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {drivers.map((driver) => {
           const isDanger =

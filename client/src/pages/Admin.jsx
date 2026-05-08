@@ -103,6 +103,7 @@ export default function Admin() {
   const [activeSection, setActiveSection] = useState("overview");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [creatingFixtures, setCreatingFixtures] = useState(false);
   const [editingTeam, setEditingTeam] = useState(null);
   const [viewTeam, setViewTeam] = useState(null);
   const [isEditingInView, setIsEditingInView] = useState(false);
@@ -163,8 +164,6 @@ export default function Admin() {
   };
 
 const deleteTeam = async (id) => {
-  if (!window.confirm("Are you sure you want to delete this team?")) return;
-
   await api.delete(`/admin/teams/${id}`);
   await load();
 };
@@ -205,6 +204,9 @@ const getTeamDrivers = (teamId) => {
 };
 
   const generateFixtures = async () => {
+    if (creatingFixtures) return;
+    setCreatingFixtures(true);
+
     try {
       const payload = {
         ...fixtureForm,
@@ -216,6 +218,8 @@ const getTeamDrivers = (teamId) => {
       await load();
     } catch (error) {
       setMessage(error.response?.data?.message || "Fixture generation failed.");
+    } finally {
+      setCreatingFixtures(false);
     }
   };
 
@@ -265,6 +269,7 @@ const getTeamDrivers = (teamId) => {
             fixtureForm={fixtureForm}
             setFixtureForm={setFixtureForm}
             generateFixtures={generateFixtures}
+            creatingFixtures={creatingFixtures}
             onDone={load}
             onMessage={setMessage}
           />
@@ -803,7 +808,7 @@ function SummaryTile({ label, value }) {
   );
 }
 
-function FixtureManager({ teams, matches, fixtureForm, setFixtureForm, generateFixtures, onDone, onMessage }) {
+function FixtureManager({ teams, matches, fixtureForm, setFixtureForm, generateFixtures, creatingFixtures, onDone, onMessage }) {
   const approvedTeams = teams.filter((team) => team.status === "Approved");
   const [dayFilter, setDayFilter] = useState("all");
   
@@ -897,8 +902,13 @@ function FixtureManager({ teams, matches, fixtureForm, setFixtureForm, generateF
               <span className="font-semibold">Shuffle Teams</span>
             </label>
           </div>
-          <button onClick={generateFixtures} className="inline-flex justify-center items-center gap-2 rounded-lg bg-neonPink px-4 py-3 font-bold text-black hover:bg-neonPink/90 transition">
-            <Trophy className="h-4 w-4" /> Create Draft Fixtures
+          <button
+            type="button"
+            onClick={generateFixtures}
+            disabled={creatingFixtures}
+            className={`inline-flex justify-center items-center gap-2 rounded-lg bg-neonPink px-4 py-3 font-bold text-black transition ${creatingFixtures ? "cursor-not-allowed opacity-60" : "hover:bg-neonPink/90"}`}
+          >
+            <Trophy className="h-4 w-4" /> {creatingFixtures ? "Creating fixtures..." : "Create Draft Fixtures"}
           </button>
         </div>
       </Panel>
