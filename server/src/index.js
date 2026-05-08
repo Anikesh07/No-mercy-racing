@@ -14,12 +14,15 @@ import adminRoutes from "./routes/admin.js";
 import authRoutes from "./routes/auth.js";
 import publicRoutes from "./routes/public.js";
 import teamRoutes from "./routes/teams.js";
+import seedRoutes from "./routes/seed.js";
+
 import { errorHandler } from "./middleware/errorHandler.js";
 import { apiLimiter } from "./middleware/rateLimiter.js";
 
 dotenv.config();
 
 const app = express();
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -35,9 +38,10 @@ if (!process.env.MONGO_URI) {
    🌍 CORS SETUP
 ========================= */
 const envOrigin = process.env.CLIENT_ORIGIN;
+
 const allowedOrigins = [
-  "https://no-mercy-racing-3vbd.vercel.app", // Deployed Frontend
-  "http://localhost:5173", // Local Frontend
+  "https://no-mercy-racing-3vbd.vercel.app",
+  "http://localhost:5173",
   "http://localhost:5000"
 ];
 
@@ -45,15 +49,28 @@ if (envOrigin && !allowedOrigins.includes(envOrigin)) {
   allowedOrigins.push(envOrigin);
 }
 
-app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true
+  })
+);
 
 /* =========================
-   🧱 MIDDLEWARE
+   🧱 SECURITY & MIDDLEWARE
 ========================= */
 app.use(helmet());
-app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" })); // Important for serving images
+
+app.use(
+  helmet.crossOriginResourcePolicy({
+    policy: "cross-origin"
+  })
+);
+
 app.use(express.json({ limit: "5mb" }));
+
 app.use(mongoSanitize());
+
 app.use(compression());
 
 if (process.env.NODE_ENV === "production") {
@@ -62,31 +79,53 @@ if (process.env.NODE_ENV === "production") {
   app.use(morgan("dev"));
 }
 
+/* =========================
+   📂 STATIC FILES
+========================= */
 app.use(
   "/uploads",
   express.static(path.join(__dirname, "..", "uploads"))
 );
 
 /* =========================
-   🚦 ROUTES
+   🚦 RATE LIMITER
 ========================= */
-// Apply rate limiter to all API routes
 app.use("/api", apiLimiter);
 
-app.get("/api/health", (_req, res) =>
-  res.json({ ok: true, name: "No Mercy Racing League API" })
-);
+/* =========================
+   ❤️ HEALTH CHECK
+========================= */
+app.get("/api/health", (_req, res) => {
+  res.json({
+    ok: true,
+    name: "No Mercy Racing League API"
+  });
+});
 
+/* =========================
+   🚀 API ROUTES
+========================= */
 app.use("/api/auth", authRoutes);
+
 app.use("/api/teams", teamRoutes);
+
 app.use("/api/admin", adminRoutes);
+
+/* =========================
+   🌱 TEMP SEED ROUTE
+   REMOVE AFTER USE
+========================= */
+app.use("/api/seed", seedRoutes);
+
 app.use("/api", publicRoutes);
 
-// Centralized error handler should be last
+/* =========================
+   ❌ ERROR HANDLER
+========================= */
 app.use(errorHandler);
 
 /* =========================
-   🚀 SERVER START
+   🌐 SERVER PORT
 ========================= */
 const port = process.env.PORT || 5000;
 
@@ -95,8 +134,7 @@ const port = process.env.PORT || 5000;
 ========================= */
 mongoose
   .connect(process.env.MONGO_URI, {
-    // optional but nice
-    autoIndex: true,
+    autoIndex: true
   })
   .then(() => {
     console.log("✅ MongoDB Atlas connected");
@@ -110,49 +148,72 @@ mongoose
     ========================= */
     const shutdown = async () => {
       console.log("🛑 Shutting down gracefully...");
+
       server.close(async () => {
         console.log("✅ HTTP server closed.");
+
         try {
           await mongoose.connection.close();
+
           console.log("✅ MongoDB connection closed.");
+
           process.exit(0);
         } catch (err) {
           console.error("❌ Error during MongoDB disconnect:", err);
+
           process.exit(1);
         }
       });
     };
 
     process.on("SIGINT", shutdown);
+
     process.on("SIGTERM", shutdown);
   })
   .catch((error) => {
     console.error("❌ MongoDB connection failed:");
+
     console.error(error.message);
+
     process.exit(1);
   });
 
 /* =========================
-   💀 GLOBAL ERROR HANDLER & KEEP-ALIVE
+   💀 GLOBAL ERROR HANDLING
 ========================= */
 process.on("unhandledRejection", (err) => {
   console.error("❌ Unhandled Promise Rejection:", err);
+
   process.exit(1);
 });
 
 process.on("uncaughtException", (err) => {
   console.error("❌ Uncaught Exception:", err);
+
   process.exit(1);
 });
 
-// Trick Render into staying awake
-if (process.env.NODE_ENV === "production" && process.env.RENDER_EXTERNAL_URL) {
+/* =========================
+   📡 KEEP RENDER AWAKE
+========================= */
+if (
+  process.env.NODE_ENV === "production" &&
+  process.env.RENDER_EXTERNAL_URL
+) {
   const pingUrl = `${process.env.RENDER_EXTERNAL_URL}/api/health`;
+
   setInterval(() => {
-    https.get(pingUrl, (res) => {
-      console.log(`📡 Keep-Alive Ping sent to ${pingUrl} (Status: ${res.statusCode})`);
-    }).on("error", (err) => {
-      console.error(`❌ Keep-Alive Ping failed:`, err.message);
-    });
-  }, 10 * 60 * 1000); // 10 minutes
+    https
+      .get(pingUrl, (res) => {
+        console.log(
+          `📡 Keep-Alive Ping sent to ${pingUrl} (Status: ${res.statusCode})`
+        );
+      })
+      .on("error", (err) => {
+        console.error(
+          "❌ Keep-Alive Ping failed:",
+          err.message
+        );
+      });
+  }, 10 * 60 * 1000);
 }
