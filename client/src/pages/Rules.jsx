@@ -15,14 +15,19 @@ import Panel from "../components/Panel.jsx";
 
 const sections = [
   {
-    title: "Event Structure",
-    icon: <Flag className="text-neonPink" />,
-    items: [
-      "Event runs for 7 consecutive days",
-      "Management approval required before participation",
-      "Participation = acceptance of all league rules"
-    ]
-  },
+  title: "Event Structure",
+  icon: <Flag className="text-neonPink" />,
+  highlight: true,
+  items: [
+    "Event runs for 7 consecutive days",
+    "Day 1 and Day 2 will be qualifying rounds",
+    "From Day 3 onward, elimination rounds will begin",
+    "Management approval required before participation",
+    "Participation = acceptance of all league rules",
+    "All teams must reach the race track 30 minutes before race start time",
+    "Late arrival may result in penalties or disqualification"
+  ]
+},
 
   {
     title: "Entry Rules",
@@ -103,16 +108,21 @@ const sections = [
   },
 
   {
-    title: "Grid & Start Rules",
-    icon: <Flag className="text-cyan-400" />,
-    items: [
-      "2-line grid system",
-      "Day 1 grid determined randomly",
-      "Day 2+ grid based on reverse ranking order",
-      "No jump starts allowed",
-      "Lane discipline must be maintained"
-    ]
-  },
+  title: "Track Selection & Start Rules",
+  icon: <Flag className="text-cyan-400" />,
+  highlight: true,
+  items: [
+    "2-line grid system will be used",
+    "Day 1 grid determined randomly",
+    "Day 2+ grid based on reverse ranking order",
+    "From elimination rounds, out of 3 tracks:",
+    "2 tracks can be selected by participating crews",
+    "1 track will be selected by management",
+    "Management reserves the right to change tracks at any time if required",
+    "No jump starts allowed",
+    "Lane discipline must be maintained"
+  ]
+},
 
   {
     title: "Disconnect Rule",
