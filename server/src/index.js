@@ -14,7 +14,7 @@ import adminRoutes from "./routes/admin.js";
 import authRoutes from "./routes/auth.js";
 import publicRoutes from "./routes/public.js";
 import teamRoutes from "./routes/teams.js";
-import seedRoutes from "./routes/seed.js";
+// import seedRoutes from "./routes/seed.js";
 
 import { errorHandler } from "./middleware/errorHandler.js";
 import { apiLimiter } from "./middleware/rateLimiter.js";
@@ -115,7 +115,7 @@ app.use("/api/admin", adminRoutes);
    🌱 TEMP SEED ROUTE
    REMOVE AFTER USE
 ========================= */
-app.use("/api/seed", seedRoutes);
+// app.use("/api/seed", seedRoutes);
 
 app.use("/api", publicRoutes);
 

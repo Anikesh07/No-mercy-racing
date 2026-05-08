@@ -1,23 +1,23 @@
-import express from "express";
+// import express from "express";
 
-const router = express.Router();
+// const router = express.Router();
 
-router.get("/", async (req, res) => {
-  try {
-    await import("../seedAdmin.js");
+// router.get("/", async (req, res) => {
+//   try {
+//     await import("../seedAdmin.js");
 
-    res.json({
-      success: true,
-      message: "Admins seeded successfully"
-    });
-  } catch (error) {
-    console.error(error);
+//     res.json({
+//       success: true,
+//       message: "Admins seeded successfully"
+//     });
+//   } catch (error) {
+//     console.error(error);
 
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
+//     res.status(500).json({
+//       success: false,
+//       error: error.message
+//     });
+//   }
+// });
 
-export default router;
+// export default router;
