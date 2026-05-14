@@ -20,7 +20,7 @@ export default function App() {
               <Flag className="h-6 w-6 text-neonPink" />
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.3em] text-neonBlue">HydraLyx</p>
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-neonBlue">NMRL</p>
               <h1 className="text-xl font-black sm:text-2xl">No Mercy Racing League</h1>
             </div>
           </NavLink>

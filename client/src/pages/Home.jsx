@@ -36,7 +36,7 @@ export default function Home() {
   {/* CONTENT */}
   <div className="relative z-10">
     <p className="text-xs tracking-widest text-neonBlue">
-      HydraLyx
+      NMRL
     </p>
 
     <h1 className="text-5xl font-black mt-2 bg-gradient-to-r from-white via-neonPink to-purple-400 bg-clip-text text-transparent">

@@ -14,11 +14,6 @@ const adminsToSeed = [
     username: process.env.HIDDEN_ADMIN_USERNAME || "Anni",
     password: process.env.HIDDEN_ADMIN_PASSWORD || "Anni1207",
     role: "admin"
-  },
-  {
-    username: process.env.STAFF_USERNAME || "HydraLyx",
-    password: process.env.STAFF_PASSWORD || "StaffHydraLyx",
-    role: "staff"
   }
 ];
 
