@@ -2,204 +2,97 @@ import Driver from "../models/Driver.js";
 import Match from "../models/Match.js";
 import Team from "../models/Team.js";
 
-/* ================= DYNAMIC POINT SYSTEM ================= */
+const teamGpPoints = [10, 8, 6, 5, 4, 3, 2];
+const duoPoints = [8, 6, 5, 4, 3];
 
-// TOURNAMENT STRUCTURE:
-// Days 1-2: Qualifying Rounds (ONLY Grand Prix races - Team vs Team)
-// - Multiple teams per race
-// - NO Duo Clash or Solo Showdown matches
-// - Qualification: 15 teams → 12 qualify, 13 teams → 10 qualify, 10 teams → 8 qualify
-// - Random team assignments
-//
-// Days 3+: Elimination Rounds (Crew vs Crew, 2 teams per match)
-// - Bracket style: 1vs3, 2vs5, etc.
-// - Winner advances, loser disqualified
-// - Duo and Solo matches occur with points
-// - Flexible tournament duration (not fixed to 7 days)
-//
-// POINT SYSTEM: Positive points only, no negative deductions
-// - Days 1-2: Only Grand Prix points awarded
-// - Days 3+: Grand Prix, Duo, and Solo points awarded
-
-// OLD POINT SYSTEM (COMMENTED FOR BACKUP)
-/*
-function getMultiplier(type) {
-  switch (type) {
-    case "Team": return 2.0;      // Grand Prix
-    case "Duo": return 1.5;       // Duo Clash
-    case "Solo": return 1.2;      // Solo Showdown
-    case "Rivalry": return 1.3;   // Rivalry
-    default: return 1;
-  }
+function positionPoints(type, position) {
+  if (type === "Team") return teamGpPoints[position - 1] || 1;
+  if (type === "Duo") return duoPoints[position - 1] || 2;
+  return position === 1 ? 7 : 0;
 }
 
-function calculatePoints(type, position, total, disqualified) {
+function driverRating(position, disqualified) {
   if (disqualified) return 0;
-
-  const base = total - position + 1;
-  const participation = 2;
-  const multiplier = getMultiplier(type);
-
-  return Math.round((base + participation) * multiplier);
+  if (position === 1) return 12;
+  if (position === 2) return 8;
+  if (position === 3) return 6;
+  return 2;
 }
-*/
-
-// NEW ROUND ROBIN POINT SYSTEM
-// Team vs Team format with fixed points per position
-
-function getPointsForPosition(type, position, total, disqualified) {
-  if (disqualified) return 0;
-
-  const pointsTables = {
-    // Grand Prix: 8 racers (4 per team)
-    Team: [10, 8, 6, 5, 4, 3, 2, 1],
-    // Duo Clash: 4 racers (2 per team)
-    Duo: [6, 4, 2, 1],
-    // Solo Showdown: 2 racers (1 per team)
-    Solo: [5, 2],
-    // Rivalry: keep old dynamic system
-    Rivalry: null
-  };
-
-  const table = pointsTables[type];
-  if (!table) {
-    // For Rivalry or invalid, use old calculation
-    if (type === 'Rivalry') {
-      const base = total - position + 1;
-      const participation = 2;
-      const multiplier = 1.3;
-      return Math.round((base + participation) * multiplier);
-    }
-    return 0;
-  }
-
-  if (position < 1 || position > table.length) return 0;
-
-  return table[position - 1];
-}
-
-function calculatePoints(type, position, total, disqualified) {
-  return getPointsForPosition(type, position, total, disqualified);
-}
-
-function driverRating(points, disqualified) {
-  if (disqualified) return 0;
-  return Math.round(points * 1.2); // simple scaling
-}
-
-/* ================= APPLY RESULTS ================= */
 
 export async function applyResults(matchId, results) {
   const match = await Match.findById(matchId);
   if (!match) throw new Error("Match not found");
   if (match.status === "Completed") throw new Error("Results already submitted");
 
-  // ✅ Unique positions check
   const positions = new Set();
-  for (const r of results) {
-    if (positions.has(r.position)) {
-      throw new Error("Positions must be unique");
-    }
-    positions.add(r.position);
+  for (const result of results) {
+    if (positions.has(result.position)) throw new Error("Finishing positions must be unique");
+    positions.add(result.position);
   }
 
   const teamDeltas = new Map();
-
   const addTeamDelta = (teamId, delta) => {
     const key = String(teamId);
     teamDeltas.set(key, (teamDeltas.get(key) || 0) + delta);
   };
 
-  const total = results.length;
+  const participation = match.type === "Team" ? 4 : match.type === "Duo" ? 4 : 3;
+  for (const participant of match.participants) {
+    addTeamDelta(participant.teamId, participation * Math.max(participant.driverIds.length, match.type === "Solo" ? 1 : 0));
+  }
 
-  /* ================= RESULTS PROCESS ================= */
+  for (const result of results) {
+    if (!result.disqualified) addTeamDelta(result.teamId, positionPoints(match.type, result.position));
 
-  for (const r of results) {
-    const pts = calculatePoints(
-      match.type,
-      r.position,
-      total,
-      r.disqualified
-    );
-
-    addTeamDelta(r.teamId, pts);
-
-    if (r.driverId) {
-      const isWin = r.position === 1 && !r.disqualified;
-
-      await Driver.findByIdAndUpdate(r.driverId, {
+    if (result.driverId) {
+      const isWin = result.position === 1 && !result.disqualified;
+      await Driver.findByIdAndUpdate(result.driverId, {
         $inc: {
           racesPlayed: 1,
           wins: isWin ? 1 : 0,
-          podiums: r.position <= 3 && !r.disqualified ? 1 : 0,
-          totalPositions: r.position,
-          racePoints: pts,
-          ratingPoints: driverRating(pts, r.disqualified)
+          podiums: result.position <= 3 && !result.disqualified ? 1 : 0,
+          totalPositions: result.position,
+          racePoints: result.disqualified ? 0 : positionPoints(match.type, result.position),
+          ratingPoints: driverRating(result.position, result.disqualified)
         },
-
-        $min: {
-          bestPosition: r.position
-        },
-
-        $set: {
-          status: "Eligible",
-          restrictionReason: ""
-        }
+        $set: { status: "Eligible", restrictionReason: "" },
+        $min: { bestPosition: result.position }
       });
     }
   }
 
-  /* ================= TEAM GP PENALTIES ================= */
-
-  // REMOVED: Negative point system for GP matches
-  // Teams now only receive positive points based on driver positions
-
-  // Keep driver restriction for GP top performers (if needed for tournament rules)
   if (match.type === "Team") {
-    const restrictedDrivers = results
-      .filter(r => r.position <= 3 && r.driverId && !r.disqualified)
-      .map(r => r.driverId);
+    const teamTotals = [...teamDeltas.entries()].sort((a, b) => a[1] - b[1]);
+    if (teamTotals[0]) teamDeltas.set(teamTotals[0][0], teamTotals[0][1] - 3);
+    if (teamTotals[1]) teamDeltas.set(teamTotals[1][0], teamTotals[1][1] - 2);
+    if (teamTotals[2]) teamDeltas.set(teamTotals[2][0], teamTotals[2][1] - 1);
 
+    const restrictedDriverIds = results
+      .filter((result) => result.position <= 3 && result.driverId && !result.disqualified)
+      .map((result) => result.driverId);
     await Driver.updateMany(
-      { _id: { $in: restrictedDrivers } },
-      {
-        $set: {
-          status: "Restricted",
-          restrictionReason: "Top GP performers cannot join Duo/Solo today"
-        }
-      }
+      { _id: { $in: restrictedDriverIds } },
+      { $set: { status: "Restricted", restrictionReason: "Top Team GP performer cannot enter Duo or Solo today" } }
     );
   }
 
-  /* ================= RIVALRY BET ================= */
-
-  // REMOVED: Negative point system for rivalry bets
-  // Only positive points awarded to winners
   if (match.type === "Rivalry" && match.betPoints > 0) {
     const sorted = [...results].sort((a, b) => a.position - b.position);
-
-    if (sorted[0]) {
+    if (sorted[0] && sorted[1]) {
       addTeamDelta(sorted[0].teamId, match.betPoints);
-      // Removed negative points for losing team
+      addTeamDelta(sorted[1].teamId, -match.betPoints);
     }
   }
 
-  /* ================= SAVE TEAM POINTS ================= */
-
   for (const [teamId, delta] of teamDeltas.entries()) {
-    await Team.findByIdAndUpdate(teamId, {
-      $inc: { points: delta }
-    });
+    await Team.findByIdAndUpdate(teamId, { $inc: { points: delta } });
   }
 
   match.results = results;
   match.status = "Completed";
   await match.save();
-
   return match;
 }
-
-/* ================= LEADERBOARDS ================= */
 
 export async function getLeaderboards() {
   const teams = await Team.find({ status: "Approved" });
@@ -221,26 +114,47 @@ export async function getLeaderboards() {
   });
 
   matches.forEach(match => {
-    const total = match.results.length;
+    const participation = match.type === "Team" ? 4 : match.type === "Duo" ? 4 : 3;
+
+    match.participants.forEach(participant => {
+      const team = teamMap[participant.teamId];
+      if (!team) return;
+      const pts = participation * Math.max(participant.driverIds.length, match.type === "Solo" ? 1 : 0);
+      if (match.type === "Team") team.breakdown.grandPrix += pts;
+      else if (match.type === "Duo") team.breakdown.duo += pts;
+      else if (match.type === "Solo") team.breakdown.solo += pts;
+      else if (match.type === "Rivalry") team.breakdown.rivalry += pts;
+    });
+
+    const teamDeltas = new Map();
 
     match.results.forEach(result => {
       if (result.disqualified) return;
+      
+      const pts = positionPoints(match.type, result.position);
+      teamDeltas.set(String(result.teamId), (teamDeltas.get(String(result.teamId)) || 0) + pts);
 
       const team = teamMap[result.teamId];
       if (!team) return;
-
-      const pts = calculatePoints(
-        match.type,
-        result.position,
-        total,
-        result.disqualified
-      );
-
       if (match.type === "Team") team.breakdown.grandPrix += pts;
-      if (match.type === "Duo") team.breakdown.duo += pts;
-      if (match.type === "Solo") team.breakdown.solo += pts;
-      if (match.type === "Rivalry") team.breakdown.rivalry += pts;
+      else if (match.type === "Duo") team.breakdown.duo += pts;
+      else if (match.type === "Solo") team.breakdown.solo += pts;
     });
+
+    if (match.type === "Team") {
+      const teamTotals = [...teamDeltas.entries()].sort((a, b) => a[1] - b[1]);
+      if (teamTotals[0] && teamMap[teamTotals[0][0]]) teamMap[teamTotals[0][0]].breakdown.grandPrix -= 3;
+      if (teamTotals[1] && teamMap[teamTotals[1][0]]) teamMap[teamTotals[1][0]].breakdown.grandPrix -= 2;
+      if (teamTotals[2] && teamMap[teamTotals[2][0]]) teamMap[teamTotals[2][0]].breakdown.grandPrix -= 1;
+    }
+
+    if (match.type === "Rivalry" && match.betPoints > 0) {
+      const sorted = [...match.results].sort((a, b) => a.position - b.position);
+      if (sorted[0] && sorted[1]) {
+        if (teamMap[sorted[0].teamId]) teamMap[sorted[0].teamId].breakdown.rivalry += match.betPoints;
+        if (teamMap[sorted[1].teamId]) teamMap[sorted[1].teamId].breakdown.rivalry -= match.betPoints;
+      }
+    }
   });
 
   const teamLeaderboard = Object.values(teamMap)
@@ -253,28 +167,17 @@ export async function getLeaderboards() {
   const driverLeaderboard = drivers
     .map(driver => {
       const races = driver.racesPlayed || 0;
-
       return {
         ...driver.toObject(),
-
-        winRate: races
-          ? Math.round((driver.wins / races) * 100)
-          : 0,
-
-        avgPosition: races
-          ? Number((driver.totalPositions / races).toFixed(2))
-          : 0,
-
+        rank: 0,
+        winRate: races ? Math.round((driver.wins / races) * 100) : 0,
+        avgPosition: races ? Number((driver.totalPositions / races).toFixed(2)) : 0,
         bestPosition: driver.bestPosition || "-"
       };
     })
     .sort((a, b) => {
-      if (b.ratingPoints !== a.ratingPoints)
-        return b.ratingPoints - a.ratingPoints;
-
-      if (b.wins !== a.wins)
-        return b.wins - a.wins;
-
+      if (b.ratingPoints !== a.ratingPoints) return b.ratingPoints - a.ratingPoints;
+      if (b.wins !== a.wins) return b.wins - a.wins;
       return a.avgPosition - b.avgPosition;
     })
     .map((driver, i) => ({

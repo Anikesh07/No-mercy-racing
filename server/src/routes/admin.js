@@ -6,7 +6,7 @@ import Match from "../models/Match.js";
 import Penalty from "../models/Penalty.js";
 import Team from "../models/Team.js";
 import { requireAdmin } from "../middleware/auth.js";
-import { assignDrivers, generateCustomFixtures, generateFixtures, generateNewTournamentFixtures } from "../services/fixtures.js";
+import { assignDrivers, generateCustomFixtures, generateFixtures } from "../services/fixtures.js";
 import { applyResults } from "../services/scoring.js";
 
 const router = express.Router();
@@ -159,8 +159,7 @@ router.post("/chat", async (req, res) => {
 
 router.post("/fixtures/generate", async (req, res) => {
   try {
-    // Using new Round Robin → Elimination fixture system
-    const fixtures = await generateNewTournamentFixtures(req.body);
+    const fixtures = await generateCustomFixtures(req.body);
     res.status(201).json(fixtures);
   } catch (error) {
     res.status(400).json({ message: error.message });
